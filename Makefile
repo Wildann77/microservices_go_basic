@@ -46,47 +46,47 @@ help:
 
 # Build commands
 build:
-	docker-compose build
+	docker compose build
 
 build-no-cache:
-	docker-compose build --no-cache
+	docker compose build --no-cache
 
 # Docker Compose commands
 up:
-	docker-compose up
+	docker compose up
 
 up-d:
-	docker-compose up -d
+	docker compose up -d
 
 down:
-	docker-compose down
+	docker compose down
 
 restart:
-	docker-compose restart
+	docker compose restart
 
 logs:
-	docker-compose logs
+	docker compose logs
 
 logs-f:
-	docker-compose logs -f
+	docker compose logs -f
 
 logs-user:
-	docker-compose logs -f user-service
+	docker compose logs -f user-service
 
 logs-order:
-	docker-compose logs -f order-service
+	docker compose logs -f order-service
 
 logs-payment:
-	docker-compose logs -f payment-service
+	docker compose logs -f payment-service
 
 # Cleanup commands
 clean:
-	docker-compose down -v
+	docker compose down -v
 	docker system prune -f
 
 
 clean-all:
-	docker-compose down -v --rmi all
+	docker compose down -v --rmi all
 	docker system prune -af
 
 # Local development commands
@@ -141,17 +141,17 @@ test-coverage:
 migrate-up:
 	@echo "Running database migrations..."
 	@echo "User Service migrations:"
-	docker-compose exec -T postgres-user psql -U postgres -d user -f /docker-entrypoint-initdb.d/001_create_users.up.sql || true
+	docker compose exec -T postgres-user psql -U postgres -d user -f /docker-entrypoint-initdb.d/001_create_users.up.sql || true
 	@echo "Order Service migrations:"
-	docker-compose exec -T postgres-order psql -U postgres -d order -f /docker-entrypoint-initdb.d/001_create_orders.up.sql || true
+	docker compose exec -T postgres-order psql -U postgres -d order -f /docker-entrypoint-initdb.d/001_create_orders.up.sql || true
 	@echo "Payment Service migrations:"
-	docker-compose exec -T postgres-payment psql -U postgres -d payment -f /docker-entrypoint-initdb.d/001_create_payments.up.sql || true
+	docker compose exec -T postgres-payment psql -U postgres -d payment -f /docker-entrypoint-initdb.d/001_create_payments.up.sql || true
 
 migrate-down:
 	@echo "Rolling back database migrations..."
-	docker-compose exec -T postgres-user psql -U postgres -d user -f /docker-entrypoint-initdb.d/001_create_users.down.sql || true
-	docker-compose exec -T postgres-order psql -U postgres -d order -f /docker-entrypoint-initdb.d/001_create_orders.down.sql || true
-	docker-compose exec -T postgres-payment psql -U postgres -d payment -f /docker-entrypoint-initdb.d/001_create_payments.down.sql || true
+	docker compose exec -T postgres-user psql -U postgres -d user -f /docker-entrypoint-initdb.d/001_create_users.down.sql || true
+	docker compose exec -T postgres-order psql -U postgres -d order -f /docker-entrypoint-initdb.d/001_create_orders.down.sql || true
+	docker compose exec -T postgres-payment psql -U postgres -d payment -f /docker-entrypoint-initdb.d/001_create_payments.down.sql || true
 
 # Dependency management
 deps:
@@ -253,7 +253,7 @@ init:
 
 # Development mode - start infrastructure only
 infra:
-	docker-compose up -d postgres-user postgres-order postgres-payment rabbitmq jaeger prometheus
+	docker compose up -d postgres-user postgres-order postgres-payment rabbitmq jaeger prometheus
 	@echo "Infrastructure started. Waiting for services to be ready..."
 	@sleep 5
 	@echo "Run individual services locally with:"
@@ -264,7 +264,7 @@ infra:
 
 # Stop infrastructure
 infra-down:
-	docker-compose stop postgres-user postgres-order postgres-payment rabbitmq jaeger prometheus
+	docker compose stop postgres-user postgres-order postgres-payment rabbitmq jaeger prometheus
 
 # Full reset
 reset: clean-all
