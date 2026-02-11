@@ -6,11 +6,11 @@ services:
     image: postgres:15-alpine
     container_name: postgres-user
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: user
+      POSTGRES_USER: ${USER_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${USER_DB_PASSWORD:-password}
+      POSTGRES_DB: ${USER_DB_NAME:-user}
     ports:
-      - "5432:5432"
+      - "${USER_DB_PORT:-5432}:5432"
     volumes:
       - postgres_user_data:/var/lib/postgresql/data
       - ./services/user/migrations:/docker-entrypoint-initdb.d
@@ -27,11 +27,11 @@ services:
     image: postgres:15-alpine
     container_name: postgres-order
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: order
+      POSTGRES_USER: ${ORDER_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${ORDER_DB_PASSWORD:-password}
+      POSTGRES_DB: ${ORDER_DB_NAME:-order}
     ports:
-      - "5433:5432"
+      - "${ORDER_DB_PORT:-5433}:5432"
     volumes:
       - postgres_order_data:/var/lib/postgresql/data
       - ./services/order/migrations:/docker-entrypoint-initdb.d
@@ -48,11 +48,11 @@ services:
     image: postgres:15-alpine
     container_name: postgres-payment
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
-      POSTGRES_DB: payment
+      POSTGRES_USER: ${PAYMENT_DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${PAYMENT_DB_PASSWORD:-password}
+      POSTGRES_DB: ${PAYMENT_DB_NAME:-payment}
     ports:
-      - "5434:5432"
+      - "${PAYMENT_DB_PORT:-5434}:5432"
     volumes:
       - postgres_payment_data:/var/lib/postgresql/data
       - ./services/payment/migrations:/docker-entrypoint-initdb.d
@@ -69,10 +69,10 @@ services:
     image: rabbitmq:3-management-alpine
     container_name: rabbitmq
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
     ports:
-      - "5672:5672"
+      - "${RABBITMQ_PORT:-5672}:5672"
       - "15672:15672"
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
