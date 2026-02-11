@@ -34,11 +34,6 @@ func (r *orderResolver) User(ctx context.Context, obj *order.Order) (*user.User,
 	return loaders.UserLoader.Load(ctx, obj.UserID)
 }
 
-// ShippingAddress is the resolver for the shippingAddress field.
-func (r *orderResolver) ShippingAddress(ctx context.Context, obj *order.Order) (string, error) {
-	return obj.ShippingAddress, nil
-}
-
 // Payment is the resolver for the payment field.
 func (r *orderResolver) Payment(ctx context.Context, obj *order.Order) (*payment.Payment, error) {
 	loaders := GetLoaders(ctx)

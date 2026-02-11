@@ -17,12 +17,17 @@ CREATE TABLE IF NOT EXISTS payments (
 );
 
 -- Create indexes
-CREATE INDEX idx_payments_order_id ON payments(order_id);
-CREATE INDEX idx_payments_user_id ON payments(user_id);
-CREATE INDEX idx_payments_status ON payments(status);
-CREATE INDEX idx_payments_created_at ON payments(created_at);
-CREATE INDEX idx_payments_user_status ON payments(user_id, status);
-CREATE INDEX idx_payments_transaction_id ON payments(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_payments_order_id ON payments (order_id);
+
+CREATE INDEX IF NOT EXISTS idx_payments_user_id ON payments (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_payments_status ON payments (status);
+
+CREATE INDEX IF NOT EXISTS idx_payments_created_at ON payments (created_at);
+
+CREATE INDEX IF NOT EXISTS idx_payments_user_status ON payments (user_id, status);
+
+CREATE INDEX IF NOT EXISTS idx_payments_transaction_id ON payments (transaction_id);
 
 -- Create updated_at trigger
 CREATE OR REPLACE FUNCTION update_payments_updated_at()
@@ -32,6 +37,8 @@ BEGIN
     RETURN NEW;
 END;
 $$ language 'plpgsql';
+
+DROP TRIGGER IF EXISTS update_payments_updated_at_trigger ON payments;
 
 CREATE TRIGGER update_payments_updated_at_trigger
     BEFORE UPDATE ON payments

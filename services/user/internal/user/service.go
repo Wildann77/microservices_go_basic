@@ -12,10 +12,10 @@ import (
 
 // Service handles user business logic
 type Service struct {
-	repo       *Repository
-	validator  *validator.Validator
-	jwtConfig  *config.JWTConfig
-	publisher  EventPublisher
+	repo      *Repository
+	validator *validator.Validator
+	jwtConfig *config.JWTConfig
+	publisher EventPublisher
 }
 
 // EventPublisher interface for publishing events
@@ -34,7 +34,7 @@ func NewService(repo *Repository, jwtConfig *config.JWTConfig, publisher EventPu
 }
 
 // Create creates a new user
-func (s *Service) Create(ctx context.Context, req *CreateUserRequest) (*UserResponse, error) {
+func (s *Service) Create(ctx context.Context, req *CreateUserRequest) (*LoginResponse, error) {
 	log := logger.WithContext(ctx)
 
 	// Validate request
@@ -77,7 +77,17 @@ func (s *Service) Create(ctx context.Context, req *CreateUserRequest) (*UserResp
 		}
 	}
 
-	return user.ToResponse(), nil
+	// Generate JWT token
+	token, err := middleware.GenerateToken(user.ID, user.Email, user.Role, s.jwtConfig)
+	if err != nil {
+		log.WithError(err).Warn("Failed to generate token for new user")
+		return nil, errors.Wrap(err, errors.ErrInternalServer, "Failed to generate token")
+	}
+
+	return &LoginResponse{
+		Token: token,
+		User:  user,
+	}, nil
 }
 
 // GetByID gets user by ID

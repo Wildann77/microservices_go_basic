@@ -1,15 +1,7 @@
-type OrderItem {
-  id: ID!
-  productId: String!
-  productName: String!
-  quantity: Int!
-  unitPrice: Float!
-}
-
 type Order {
   id: ID!
-  userId: String!
-  user: User
+  userID: ID!
+  user: User!
   status: String!
   totalAmount: Float!
   currency: String!
@@ -21,29 +13,37 @@ type Order {
   updatedAt: Time!
 }
 
+type OrderItem {
+  id: ID!
+  productID: ID!
+  productName: String!
+  quantity: Int!
+  unitPrice: Float!
+}
+
 type OrderConnection {
   data: [Order!]!
   pageInfo: PageInfo!
 }
 
 input CreateOrderInput {
-  currency: String
+  items: [CreateOrderItemInput!]!
+  currency: String!
   shippingAddress: String!
   notes: String
-  items: [CreateOrderItemInput!]!
 }
 
 input CreateOrderItemInput {
-  productId: String!
+  productID: ID!
   productName: String!
   quantity: Int!
   unitPrice: Float!
 }
 
 extend type Query {
-  order(id: ID!): Order
-  orders(limit: Int = 10, offset: Int = 0): OrderConnection!
-  myOrders(limit: Int = 10, offset: Int = 0): OrderConnection!
+  order(id: ID!): Order!
+  orders(limit: Int, offset: Int): OrderConnection!
+  myOrders(limit: Int, offset: Int): OrderConnection!
 }
 
 extend type Mutation {

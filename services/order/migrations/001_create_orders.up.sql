@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS orders (
 -- Create order_items table
 CREATE TABLE IF NOT EXISTS order_items (
     id UUID PRIMARY KEY,
-    order_id UUID NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+    order_id UUID NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
     product_id VARCHAR(255) NOT NULL,
     product_name VARCHAR(255) NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
@@ -23,14 +23,18 @@ CREATE TABLE IF NOT EXISTS order_items (
 );
 
 -- Create indexes for orders
-CREATE INDEX idx_orders_user_id ON orders(user_id);
-CREATE INDEX idx_orders_status ON orders(status);
-CREATE INDEX idx_orders_created_at ON orders(created_at);
-CREATE INDEX idx_orders_user_status ON orders(user_id, status);
+CREATE INDEX IF NOT EXISTS idx_orders_user_id ON orders (user_id);
+
+CREATE INDEX IF NOT EXISTS idx_orders_status ON orders (status);
+
+CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders (created_at);
+
+CREATE INDEX IF NOT EXISTS idx_orders_user_status ON orders (user_id, status);
 
 -- Create indexes for order_items
-CREATE INDEX idx_order_items_order_id ON order_items(order_id);
-CREATE INDEX idx_order_items_product_id ON order_items(product_id);
+CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items (order_id);
+
+CREATE INDEX IF NOT EXISTS idx_order_items_product_id ON order_items (product_id);
 
 -- Create updated_at trigger for orders
 CREATE OR REPLACE FUNCTION update_orders_updated_at()
@@ -40,6 +44,8 @@ BEGIN
     RETURN NEW;
 END;
 $$ language 'plpgsql';
+
+DROP TRIGGER IF EXISTS update_orders_updated_at_trigger ON orders;
 
 CREATE TRIGGER update_orders_updated_at_trigger
     BEFORE UPDATE ON orders

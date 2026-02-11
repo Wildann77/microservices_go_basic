@@ -9,6 +9,10 @@ ifneq (,$(wildcard ./.env))
     export
 endif
 
+# Go paths
+GOPATH=$(shell go env GOPATH)
+AIR=$(GOPATH)/bin/air
+
 
 # Default target
 help:
@@ -29,6 +33,12 @@ help:
 	@echo "  make run-order      - Run Order Service locally"
 	@echo "  make run-payment    - Run Payment Service locally"
 	@echo ""
+	@echo "  make dev-gateway    - Run GraphQL Gateway locally with hot reload"
+	@echo "  make dev-user       - Run User Service locally with hot reload"
+	@echo "  make dev-order      - Run Order Service locally with hot reload"
+	@echo "  make dev-payment    - Run Payment Service locally with hot reload"
+	@echo "  make dev-all        - Run all services locally with hot reload"
+	@echo ""
 	@echo "  make test           - Run all tests"
 	@echo "  make test-user      - Run User Service tests"
 	@echo "  make test-order     - Run Order Service tests"
@@ -43,6 +53,8 @@ help:
 	@echo ""
 	@echo "  make health         - Check health of all services"
 	@echo "  make seed           - Seed database with test data"
+	@echo ""
+	@echo "  make install-air    - Install Air for hot reload"
 
 # Build commands
 build:
@@ -114,6 +126,36 @@ run-all-local:
 	@echo "  make run-order"
 	@echo "  make run-payment"
 	@echo "  make run-gateway"
+
+# Development with hot reload (Air)
+dev-gateway:
+	@echo "Starting GraphQL Gateway with hot reload..."
+	cd gateway && $(AIR)
+
+dev-user:
+	@echo "Starting User Service with hot reload..."
+	cd services/user && $(AIR)
+
+dev-order:
+	@echo "Starting Order Service with hot reload..."
+	cd services/order && $(AIR)
+
+dev-payment:
+	@echo "Starting Payment Service with hot reload..."
+	cd services/payment && $(AIR)
+
+# Run all services with hot reload in separate background processes
+dev-all:
+	@echo "Starting all services with hot reload..."
+	(cd services/user && $(AIR)) & \
+	(cd services/order && $(AIR)) & \
+	(cd services/payment && $(AIR)) & \
+	(cd gateway && $(AIR)) & \
+	wait
+
+install-air:
+	@echo "Installing Air..."
+	go install github.com/air-verse/air@latest
 
 # Test commands
 test:

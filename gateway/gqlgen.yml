@@ -1,5 +1,8 @@
 schema:
-  - graph/schema/*.graphqls
+  - graph/schema.graphqls
+  - internal/user/*.graphqls
+  - internal/order/*.graphqls
+  - internal/payment/*.graphqls
 exec:
   filename: graph/generated/generated.go
   package: generated
@@ -16,7 +19,6 @@ models:
   Time:
     model: github.com/99designs/gqlgen/graphql.Time
   ID:
-
     model:
       - github.com/99designs/gqlgen/graphql.ID
       - github.com/99designs/gqlgen/graphql.Int
@@ -36,8 +38,7 @@ models:
   OrderItem:
     model: github.com/microservices-go/gateway/internal/order.OrderItem
   AuthResponse:
-
-    model: github.com/microservices-go/gateway/internal/auth.AuthResponse
+    model: github.com/microservices-go/gateway/internal/user.AuthResponse
   PageInfo:
     model: github.com/microservices-go/gateway/internal/common.PageInfo
   UserConnection:

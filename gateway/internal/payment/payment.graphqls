@@ -1,14 +1,14 @@
 type Payment {
   id: ID!
-  orderId: String!
-  order: Order
-  userId: String!
-  user: User
+  orderID: ID!
+  order: Order!
+  userID: ID!
+  user: User!
   amount: Float!
   currency: String!
   status: String!
   method: String!
-  transactionId: String
+  transactionID: String
   provider: String
   description: String
   failureReason: String
@@ -23,18 +23,18 @@ type PaymentConnection {
 }
 
 input CreatePaymentInput {
-  orderId: String!
+  orderID: ID!
   amount: Float!
-  currency: String
+  currency: String!
   method: String!
   description: String
 }
 
 extend type Query {
-  payment(id: ID!): Payment
-  paymentByOrder(orderId: ID!): Payment
-  payments(limit: Int = 10, offset: Int = 0): PaymentConnection!
-  myPayments(limit: Int = 10, offset: Int = 0): PaymentConnection!
+  payment(id: ID!): Payment!
+  paymentByOrder(orderID: ID!): Payment
+  payments(limit: Int, offset: Int): PaymentConnection!
+  myPayments(limit: Int, offset: Int): PaymentConnection!
 }
 
 extend type Mutation {

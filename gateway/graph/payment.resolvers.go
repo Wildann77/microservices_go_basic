@@ -9,11 +9,13 @@ import (
 	"context"
 
 	"github.com/microservices-go/gateway/graph/generated"
-	"github.com/microservices-go/gateway/graph/model"
+	"github.com/microservices-go/gateway/internal/order"
+	"github.com/microservices-go/gateway/internal/payment"
+	"github.com/microservices-go/gateway/internal/user"
 )
 
 // CreatePayment is the resolver for the createPayment field.
-func (r *mutationResolver) CreatePayment(ctx context.Context, input model.CreatePaymentInput) (*model.Payment, error) {
+func (r *mutationResolver) CreatePayment(ctx context.Context, input payment.CreatePaymentInput) (*payment.Payment, error) {
 	me, err := r.Query().Me(ctx)
 	if err != nil {
 		return nil, err
@@ -22,41 +24,41 @@ func (r *mutationResolver) CreatePayment(ctx context.Context, input model.Create
 }
 
 // ProcessPayment is the resolver for the processPayment field.
-func (r *mutationResolver) ProcessPayment(ctx context.Context, id string) (*model.Payment, error) {
+func (r *mutationResolver) ProcessPayment(ctx context.Context, id string) (*payment.Payment, error) {
 	return r.PaymentClient.ProcessPayment(ctx, id)
 }
 
 // RefundPayment is the resolver for the refundPayment field.
-func (r *mutationResolver) RefundPayment(ctx context.Context, id string, amount *float64, reason *string) (*model.Payment, error) {
+func (r *mutationResolver) RefundPayment(ctx context.Context, id string, amount *float64, reason *string) (*payment.Payment, error) {
 	return r.PaymentClient.RefundPayment(ctx, id, amount, reason)
 }
 
 // Order is the resolver for the order field.
-func (r *paymentResolver) Order(ctx context.Context, obj *model.Payment) (*model.Order, error) {
+func (r *paymentResolver) Order(ctx context.Context, obj *payment.Payment) (*order.Order, error) {
 	loaders := GetLoaders(ctx)
 	return loaders.OrderLoader.LoadByID(ctx, obj.OrderID)
 }
 
 // User is the resolver for the user field.
-func (r *paymentResolver) User(ctx context.Context, obj *model.Payment) (*model.User, error) {
+func (r *paymentResolver) User(ctx context.Context, obj *payment.Payment) (*user.User, error) {
 	loaders := GetLoaders(ctx)
 	return loaders.UserLoader.Load(ctx, obj.UserID)
 }
 
 // Payment is the resolver for the payment field.
-func (r *queryResolver) Payment(ctx context.Context, id string) (*model.Payment, error) {
+func (r *queryResolver) Payment(ctx context.Context, id string) (*payment.Payment, error) {
 	loaders := GetLoaders(ctx)
 	return loaders.PaymentLoader.LoadByID(ctx, id)
 }
 
 // PaymentByOrder is the resolver for the paymentByOrder field.
-func (r *queryResolver) PaymentByOrder(ctx context.Context, orderID string) (*model.Payment, error) {
+func (r *queryResolver) PaymentByOrder(ctx context.Context, orderID string) (*payment.Payment, error) {
 	loaders := GetLoaders(ctx)
 	return loaders.PaymentLoader.LoadByOrder(ctx, orderID)
 }
 
 // Payments is the resolver for the payments field.
-func (r *queryResolver) Payments(ctx context.Context, limit *int, offset *int) (*model.PaymentConnection, error) {
+func (r *queryResolver) Payments(ctx context.Context, limit *int, offset *int) (*payment.PaymentConnection, error) {
 	l := 10
 	o := 0
 	if limit != nil {
@@ -69,7 +71,7 @@ func (r *queryResolver) Payments(ctx context.Context, limit *int, offset *int) (
 }
 
 // MyPayments is the resolver for the myPayments field.
-func (r *queryResolver) MyPayments(ctx context.Context, limit *int, offset *int) (*model.PaymentConnection, error) {
+func (r *queryResolver) MyPayments(ctx context.Context, limit *int, offset *int) (*payment.PaymentConnection, error) {
 	l := 10
 	o := 0
 	if limit != nil {

@@ -36,7 +36,14 @@ make tidy
 # Start infrastructure (databases, RabbitMQ, etc.)
 make infra
 
-# Run services locally (in separate terminals)
+# Run services locally with hot reload (requires Air)
+make dev-user       # User service
+make dev-order      # Order service
+make dev-payment    # Payment service
+make dev-gateway    # Gateway
+make dev-all        # Run all services with hot reload simultaneously
+
+# Run services locally (in separate terminals, without hot reload)
 make run-user
 make run-order
 make run-payment
@@ -45,6 +52,9 @@ make run-gateway
 # Full Docker setup
 make up-d
 make down
+
+# Install tools
+make install-air    # Install Air for hot reload
 ```
 
 ## Code Style Guidelines
