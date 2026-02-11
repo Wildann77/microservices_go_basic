@@ -28,21 +28,31 @@ models:
       - github.com/99designs/gqlgen/graphql.Int64
       - github.com/99designs/gqlgen/graphql.Int32
   User:
-    model: github.com/microservices-go/gateway/graph/model.User
+    model: github.com/microservices-go/gateway/internal/user.User
   Order:
-    model: github.com/microservices-go/gateway/graph/model.Order
+    model: github.com/microservices-go/gateway/internal/order.Order
   Payment:
-    model: github.com/microservices-go/gateway/graph/model.Payment
+    model: github.com/microservices-go/gateway/internal/payment.Payment
   OrderItem:
-    model: github.com/microservices-go/gateway/graph/model.OrderItem
+    model: github.com/microservices-go/gateway/internal/order.OrderItem
   AuthResponse:
 
-    model: github.com/microservices-go/gateway/graph/model.AuthResponse
+    model: github.com/microservices-go/gateway/internal/auth.AuthResponse
   PageInfo:
-    model: github.com/microservices-go/gateway/graph/model.PageInfo
+    model: github.com/microservices-go/gateway/internal/common.PageInfo
   UserConnection:
-    model: github.com/microservices-go/gateway/graph/model.UserConnection
+    model: github.com/microservices-go/gateway/internal/user.UserConnection
   OrderConnection:
-    model: github.com/microservices-go/gateway/graph/model.OrderConnection
+    model: github.com/microservices-go/gateway/internal/order.OrderConnection
   PaymentConnection:
-    model: github.com/microservices-go/gateway/graph/model.PaymentConnection
+    model: github.com/microservices-go/gateway/internal/payment.PaymentConnection
+  RegisterInput:
+    model: github.com/microservices-go/gateway/internal/user.RegisterInput
+  LoginInput:
+    model: github.com/microservices-go/gateway/internal/user.LoginInput
+  CreateOrderInput:
+    model: github.com/microservices-go/gateway/internal/order.CreateOrderInput
+  CreateOrderItemInput:
+    model: github.com/microservices-go/gateway/internal/order.CreateOrderItemInput
+  CreatePaymentInput:
+    model: github.com/microservices-go/gateway/internal/payment.CreatePaymentInput

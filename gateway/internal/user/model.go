@@ -42,3 +42,9 @@ type LoginInput struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+
+// AuthResponse represents auth response in GraphQL
+type AuthResponse struct {
+	Token string `json:"token"`
+	User  *User  `json:"user"`
+}

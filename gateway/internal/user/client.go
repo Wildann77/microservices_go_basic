@@ -7,7 +7,10 @@ import (
 	"net/http"
 
 	"github.com/microservices-go/gateway/graph/model"
+	"github.com/microservices-go/gateway/internal/auth"
 	"github.com/microservices-go/gateway/internal/client"
+	"github.com/microservices-go/gateway/internal/common"
+	"github.com/microservices-go/gateway/internal/user"
 )
 
 type Client struct {
@@ -22,7 +25,7 @@ func NewClient(url string) *Client {
 	}
 }
 
-func (c *Client) Register(ctx context.Context, input model.RegisterInput) (*model.AuthResponse, error) {
+func (c *Client) Register(ctx context.Context, input user.RegisterInput) (*auth.AuthResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/users/register", c.url)
 	resp, err := c.MakeRequest(ctx, "POST", url, input, "")
 	if err != nil {
@@ -46,7 +49,7 @@ func (c *Client) Register(ctx context.Context, input model.RegisterInput) (*mode
 	return result.Data, nil
 }
 
-func (c *Client) Login(ctx context.Context, input model.LoginInput) (*model.AuthResponse, error) {
+func (c *Client) Login(ctx context.Context, input user.LoginInput) (*auth.AuthResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/users/login", c.url)
 	resp, err := c.MakeRequest(ctx, "POST", url, input, "")
 	if err != nil {
@@ -70,7 +73,7 @@ func (c *Client) Login(ctx context.Context, input model.LoginInput) (*model.Auth
 	return result.Data, nil
 }
 
-func (c *Client) UpdateUser(ctx context.Context, id string, firstName *string, lastName *string, isActive *bool) (*model.User, error) {
+func (c *Client) UpdateUser(ctx context.Context, id string, firstName *string, lastName *string, isActive *bool) (*user.User, error) {
 	body := map[string]interface{}{}
 	if firstName != nil {
 		body["first_name"] = *firstName
@@ -114,7 +117,7 @@ func (c *Client) DeleteUser(ctx context.Context, id string) (bool, error) {
 	return resp.StatusCode == http.StatusNoContent, nil
 }
 
-func (c *Client) Me(ctx context.Context) (*model.User, error) {
+func (c *Client) Me(ctx context.Context) (*user.User, error) {
 	url := fmt.Sprintf("%s/api/v1/users/me", c.url)
 	resp, err := c.MakeRequest(ctx, "GET", url, nil, client.GetAuthHeader(ctx))
 	if err != nil {
@@ -136,7 +139,7 @@ func (c *Client) Me(ctx context.Context) (*model.User, error) {
 	return result.Data, nil
 }
 
-func (c *Client) ListUsers(ctx context.Context, limit, offset int) (*model.UserConnection, error) {
+func (c *Client) ListUsers(ctx context.Context, limit, offset int) (*user.UserConnection, error) {
 	url := fmt.Sprintf("%s/api/v1/users?limit=%d&offset=%d", c.url, limit, offset)
 	resp, err := c.MakeRequest(ctx, "GET", url, nil, client.GetAuthHeader(ctx))
 	if err != nil {
@@ -145,7 +148,7 @@ func (c *Client) ListUsers(ctx context.Context, limit, offset int) (*model.UserC
 	defer resp.Body.Close()
 
 	var result struct {
-		Data []*model.User          `json:"data"`
+		Data []*user.User           `json:"data"`
 		Meta map[string]interface{} `json:"meta"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -157,9 +160,9 @@ func (c *Client) ListUsers(ctx context.Context, limit, offset int) (*model.UserC
 		total = int(t)
 	}
 
-	return &model.UserConnection{
+	return &user.UserConnection{
 		Data: result.Data,
-		PageInfo: model.PageInfo{
+		PageInfo: common.PageInfo{
 			Total:   total,
 			Limit:   limit,
 			Offset:  offset,
