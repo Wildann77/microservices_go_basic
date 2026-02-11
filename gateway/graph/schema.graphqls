@@ -1,3 +1,5 @@
+scalar Time
+
 type User {
   id: ID!
   email: String!
@@ -6,8 +8,8 @@ type User {
   fullName: String!
   role: String!
   isActive: Boolean!
-  createdAt: String!
-  updatedAt: String!
+  createdAt: Time!
+  updatedAt: Time!
   orders(limit: Int = 10, offset: Int = 0): [Order!]!
 }
 
@@ -30,8 +32,8 @@ type Order {
   notes: String
   items: [OrderItem!]!
   payment: Payment
-  createdAt: String!
-  updatedAt: String!
+  createdAt: Time!
+  updatedAt: Time!
 }
 
 type Payment {
@@ -48,9 +50,9 @@ type Payment {
   provider: String
   description: String
   failureReason: String
-  paidAt: String
-  createdAt: String!
-  updatedAt: String!
+  paidAt: Time
+  createdAt: Time!
+  updatedAt: Time!
 }
 
 type AuthResponse {

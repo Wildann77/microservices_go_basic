@@ -1,8 +1,9 @@
 schema:
   - graph/schema.graphqls
 exec:
-  filename: graph/generated.go
-  package: graph
+  filename: graph/generated/generated.go
+  package: generated
+
 model:
   filename: graph/model/models_gen.go
   package: model
@@ -12,7 +13,10 @@ resolver:
   package: graph
   filename_template: "{name}.resolvers.go"
 models:
+  Time:
+    model: github.com/99designs/gqlgen/graphql.Time
   ID:
+
     model:
       - github.com/99designs/gqlgen/graphql.ID
       - github.com/99designs/gqlgen/graphql.Int
@@ -29,3 +33,16 @@ models:
     model: github.com/microservices-go/gateway/graph/model.Order
   Payment:
     model: github.com/microservices-go/gateway/graph/model.Payment
+  OrderItem:
+    model: github.com/microservices-go/gateway/graph/model.OrderItem
+  AuthResponse:
+
+    model: github.com/microservices-go/gateway/graph/model.AuthResponse
+  PageInfo:
+    model: github.com/microservices-go/gateway/graph/model.PageInfo
+  UserConnection:
+    model: github.com/microservices-go/gateway/graph/model.UserConnection
+  OrderConnection:
+    model: github.com/microservices-go/gateway/graph/model.OrderConnection
+  PaymentConnection:
+    model: github.com/microservices-go/gateway/graph/model.PaymentConnection

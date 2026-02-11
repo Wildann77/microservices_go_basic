@@ -1,7 +1,6 @@
 package model
 
 import (
-	"context"
 	"time"
 )
 
@@ -9,12 +8,12 @@ import (
 type User struct {
 	ID        string    `json:"id"`
 	Email     string    `json:"email"`
-	FirstName string    `json:"firstName"`
-	LastName  string    `json:"lastName"`
+	FirstName string    `json:"first_name"`
+	LastName  string    `json:"last_name"`
 	Role      string    `json:"role"`
-	IsActive  bool      `json:"isActive"`
-	CreatedAt time.Time `json:"createdAt"`
-	UpdatedAt time.Time `json:"updatedAt"`
+	IsActive  bool      `json:"is_active"`
+	CreatedAt time.Time `json:"created_at"`
+	UpdatedAt time.Time `json:"updated_at"`
 }
 
 // FullName returns user's full name
@@ -25,42 +24,42 @@ func (u *User) FullName() string {
 // OrderItem represents an order item in GraphQL
 type OrderItem struct {
 	ID          string  `json:"id"`
-	ProductID   string  `json:"productId"`
-	ProductName string  `json:"productName"`
+	ProductID   string  `json:"product_id"`
+	ProductName string  `json:"product_name"`
 	Quantity    int     `json:"quantity"`
-	UnitPrice   float64 `json:"unitPrice"`
+	UnitPrice   float64 `json:"unit_price"`
 }
 
 // Order represents an order in GraphQL
 type Order struct {
-	ID           string       `json:"id"`
-	UserID       string       `json:"userId"`
-	Status       string       `json:"status"`
-	TotalAmount  float64      `json:"totalAmount"`
-	Currency     string       `json:"currency"`
-	ShippingAddr string       `json:"shippingAddress"`
-	Notes        *string      `json:"notes"`
-	Items        []*OrderItem `json:"items"`
-	CreatedAt    time.Time    `json:"createdAt"`
-	UpdatedAt    time.Time    `json:"updatedAt"`
+	ID              string       `json:"id"`
+	UserID          string       `json:"user_id"`
+	Status          string       `json:"status"`
+	TotalAmount     float64      `json:"total_amount"`
+	Currency        string       `json:"currency"`
+	ShippingAddress string       `json:"shipping_address"`
+	Notes           *string      `json:"notes"`
+	Items           []*OrderItem `json:"items"`
+	CreatedAt       time.Time    `json:"created_at"`
+	UpdatedAt       time.Time    `json:"updated_at"`
 }
 
 // Payment represents a payment in GraphQL
 type Payment struct {
 	ID            string     `json:"id"`
-	OrderID       string     `json:"orderId"`
-	UserID        string     `json:"userId"`
+	OrderID       string     `json:"order_id"`
+	UserID        string     `json:"user_id"`
 	Amount        float64    `json:"amount"`
 	Currency      string     `json:"currency"`
 	Status        string     `json:"status"`
 	Method        string     `json:"method"`
-	TransactionID *string    `json:"transactionId"`
+	TransactionID *string    `json:"transaction_id"`
 	Provider      *string    `json:"provider"`
 	Description   *string    `json:"description"`
-	FailureReason *string    `json:"failureReason"`
-	PaidAt        *time.Time `json:"paidAt"`
-	CreatedAt     time.Time  `json:"createdAt"`
-	UpdatedAt     time.Time  `json:"updatedAt"`
+	FailureReason *string    `json:"failure_reason"`
+	PaidAt        *time.Time `json:"paid_at"`
+	CreatedAt     time.Time  `json:"created_at"`
+	UpdatedAt     time.Time  `json:"updated_at"`
 }
 
 // AuthResponse represents auth response in GraphQL
@@ -93,19 +92,4 @@ type OrderConnection struct {
 type PaymentConnection struct {
 	Data     []*Payment `json:"data"`
 	PageInfo PageInfo   `json:"pageInfo"`
-}
-
-// LoaderKey is the key for dataloaders in context
-type LoaderKey struct{}
-
-// Loaders holds all dataloaders
-type Loaders struct {
-	UserLoader    *UserLoader
-	OrderLoader   *OrderLoader
-	PaymentLoader *PaymentLoader
-}
-
-// GetLoaders gets loaders from context
-func GetLoaders(ctx context.Context) *Loaders {
-	return ctx.Value(LoaderKey{}).(*Loaders)
 }

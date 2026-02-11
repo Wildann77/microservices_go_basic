@@ -3,9 +3,9 @@ package user
 import (
 	"context"
 	"database/sql"
-	"fmt"
 
 	"github.com/microservices-go/shared/errors"
+
 	"github.com/microservices-go/shared/logger"
 )
 
@@ -22,7 +22,7 @@ func NewRepository(db *sql.DB) *Repository {
 // Create creates a new user with transaction
 func (r *Repository) Create(ctx context.Context, user *User) error {
 	log := logger.WithContext(ctx)
-	
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, errors.ErrDatabaseError, "Failed to begin transaction")
@@ -59,7 +59,7 @@ func (r *Repository) Create(ctx context.Context, user *User) error {
 // GetByID gets user by ID
 func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 	log := logger.WithContext(ctx)
-	
+
 	query := `
 		SELECT id, email, password_hash, first_name, last_name, role, is_active, created_at, updated_at
 		FROM users WHERE id = $1
@@ -84,7 +84,7 @@ func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
 // GetByEmail gets user by email
 func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error) {
 	log := logger.WithContext(ctx)
-	
+
 	query := `
 		SELECT id, email, password_hash, first_name, last_name, role, is_active, created_at, updated_at
 		FROM users WHERE email = $1
@@ -109,7 +109,7 @@ func (r *Repository) GetByEmail(ctx context.Context, email string) (*User, error
 // List lists all users with pagination
 func (r *Repository) List(ctx context.Context, limit, offset int) ([]*User, error) {
 	log := logger.WithContext(ctx)
-	
+
 	query := `
 		SELECT id, email, password_hash, first_name, last_name, role, is_active, created_at, updated_at
 		FROM users ORDER BY created_at DESC LIMIT $1 OFFSET $2
@@ -142,7 +142,7 @@ func (r *Repository) List(ctx context.Context, limit, offset int) ([]*User, erro
 // Update updates user with transaction
 func (r *Repository) Update(ctx context.Context, user *User) error {
 	log := logger.WithContext(ctx)
-	
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, errors.ErrDatabaseError, "Failed to begin transaction")
@@ -181,7 +181,7 @@ func (r *Repository) Update(ctx context.Context, user *User) error {
 // Delete deletes user by ID
 func (r *Repository) Delete(ctx context.Context, id string) error {
 	log := logger.WithContext(ctx)
-	
+
 	tx, err := r.db.BeginTx(ctx, nil)
 	if err != nil {
 		return errors.Wrap(err, errors.ErrDatabaseError, "Failed to begin transaction")

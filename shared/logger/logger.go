@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 )
 
 // Logger wraps zerolog logger
@@ -30,7 +29,7 @@ func init() {
 		Out:        os.Stdout,
 		TimeFormat: time.RFC3339,
 	}
-	
+
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
 	if os.Getenv("ENV") == "development" {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
@@ -50,11 +49,11 @@ func New(service string) *Logger {
 // WithContext creates a logger with context values
 func (l *Logger) WithContext(ctx context.Context) *Logger {
 	logger := l.logger
-	
+
 	if traceID := ctx.Value(TraceIDKey); traceID != nil {
 		logger = logger.With().Str("trace_id", traceID.(string)).Logger()
 	}
-	
+
 	return &Logger{logger: logger}
 }
 
@@ -103,9 +102,20 @@ func (l *Logger) Infof(format string, v ...interface{}) {
 	l.logger.Info().Msgf(format, v...)
 }
 
+// Warnf logs formatted warning message
+func (l *Logger) Warnf(format string, v ...interface{}) {
+	l.logger.Warn().Msgf(format, v...)
+}
+
 // Errorf logs formatted error message
+
 func (l *Logger) Errorf(format string, v ...interface{}) {
 	l.logger.Error().Msgf(format, v...)
+}
+
+// Fatalf logs formatted fatal message
+func (l *Logger) Fatalf(format string, v ...interface{}) {
+	l.logger.Fatal().Msgf(format, v...)
 }
 
 // SetTraceID adds trace ID to context

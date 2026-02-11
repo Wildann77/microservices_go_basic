@@ -3,7 +3,6 @@ package order
 import (
 	"context"
 
-	"github.com/microservices-go/shared/errors"
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/validator"
 )
