@@ -82,8 +82,8 @@ logs-payment:
 # Cleanup commands
 clean:
 	docker-compose down -v
+	docker system prune -f
 
-docker system prune -f
 
 clean-all:
 	docker-compose down -v --rmi all
