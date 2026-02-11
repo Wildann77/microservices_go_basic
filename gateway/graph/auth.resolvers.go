@@ -8,15 +8,15 @@ package graph
 import (
 	"context"
 
-	"github.com/microservices-go/gateway/graph/model"
+	"github.com/microservices-go/gateway/internal/user"
 )
 
 // Register is the resolver for the register field.
-func (r *mutationResolver) Register(ctx context.Context, input model.RegisterInput) (*model.AuthResponse, error) {
+func (r *mutationResolver) Register(ctx context.Context, input user.RegisterInput) (*user.AuthResponse, error) {
 	return r.UserClient.Register(ctx, input)
 }
 
 // Login is the resolver for the login field.
-func (r *mutationResolver) Login(ctx context.Context, input model.LoginInput) (*model.AuthResponse, error) {
+func (r *mutationResolver) Login(ctx context.Context, input user.LoginInput) (*user.AuthResponse, error) {
 	return r.UserClient.Login(ctx, input)
 }

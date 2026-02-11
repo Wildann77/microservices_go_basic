@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/microservices-go/gateway/graph/model"
 	"github.com/microservices-go/gateway/internal/client"
+	"github.com/microservices-go/gateway/internal/common"
 )
 
 type Client struct {
@@ -22,7 +22,7 @@ func NewClient(url string) *Client {
 	}
 }
 
-func (c *Client) CreatePayment(ctx context.Context, input model.CreatePaymentInput, userID string) (*model.Payment, error) {
+func (c *Client) CreatePayment(ctx context.Context, input CreatePaymentInput, userID string) (*Payment, error) {
 	body := map[string]interface{}{
 		"order_id":    input.OrderID,
 		"user_id":     userID,
@@ -46,7 +46,7 @@ func (c *Client) CreatePayment(ctx context.Context, input model.CreatePaymentInp
 	}
 
 	var result struct {
-		Data *model.Payment `json:"data"`
+		Data *Payment `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -55,7 +55,7 @@ func (c *Client) CreatePayment(ctx context.Context, input model.CreatePaymentInp
 	return result.Data, nil
 }
 
-func (c *Client) ProcessPayment(ctx context.Context, id string) (*model.Payment, error) {
+func (c *Client) ProcessPayment(ctx context.Context, id string) (*Payment, error) {
 	url := fmt.Sprintf("%s/api/v1/payments/%s/process", c.url, id)
 	resp, err := c.MakeRequest(ctx, "POST", url, nil, client.GetAuthHeader(ctx))
 	if err != nil {
@@ -68,7 +68,7 @@ func (c *Client) ProcessPayment(ctx context.Context, id string) (*model.Payment,
 	}
 
 	var result struct {
-		Data *model.Payment `json:"data"`
+		Data *Payment `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -77,7 +77,7 @@ func (c *Client) ProcessPayment(ctx context.Context, id string) (*model.Payment,
 	return result.Data, nil
 }
 
-func (c *Client) RefundPayment(ctx context.Context, id string, amount *float64, reason *string) (*model.Payment, error) {
+func (c *Client) RefundPayment(ctx context.Context, id string, amount *float64, reason *string) (*Payment, error) {
 	body := map[string]interface{}{}
 	if amount != nil {
 		body["amount"] = *amount
@@ -98,7 +98,7 @@ func (c *Client) RefundPayment(ctx context.Context, id string, amount *float64, 
 	}
 
 	var result struct {
-		Data *model.Payment `json:"data"`
+		Data *Payment `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -107,7 +107,7 @@ func (c *Client) RefundPayment(ctx context.Context, id string, amount *float64, 
 	return result.Data, nil
 }
 
-func (c *Client) ListPayments(ctx context.Context, limit, offset int) (*model.PaymentConnection, error) {
+func (c *Client) ListPayments(ctx context.Context, limit, offset int) (*PaymentConnection, error) {
 	url := fmt.Sprintf("%s/api/v1/payments?limit=%d&offset=%d", c.url, limit, offset)
 	resp, err := c.MakeRequest(ctx, "GET", url, nil, client.GetAuthHeader(ctx))
 	if err != nil {
@@ -116,7 +116,7 @@ func (c *Client) ListPayments(ctx context.Context, limit, offset int) (*model.Pa
 	defer resp.Body.Close()
 
 	var result struct {
-		Data []*model.Payment       `json:"data"`
+		Data []*Payment             `json:"data"`
 		Meta map[string]interface{} `json:"meta"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -128,9 +128,9 @@ func (c *Client) ListPayments(ctx context.Context, limit, offset int) (*model.Pa
 		total = int(t)
 	}
 
-	return &model.PaymentConnection{
+	return &PaymentConnection{
 		Data: result.Data,
-		PageInfo: model.PageInfo{
+		PageInfo: common.PageInfo{
 			Total:   total,
 			Limit:   limit,
 			Offset:  offset,
@@ -139,7 +139,7 @@ func (c *Client) ListPayments(ctx context.Context, limit, offset int) (*model.Pa
 	}, nil
 }
 
-func (c *Client) ListMyPayments(ctx context.Context, limit, offset int) (*model.PaymentConnection, error) {
+func (c *Client) ListMyPayments(ctx context.Context, limit, offset int) (*PaymentConnection, error) {
 	url := fmt.Sprintf("%s/api/v1/payments/my-payments?limit=%d&offset=%d", c.url, limit, offset)
 	resp, err := c.MakeRequest(ctx, "GET", url, nil, client.GetAuthHeader(ctx))
 	if err != nil {
@@ -148,7 +148,7 @@ func (c *Client) ListMyPayments(ctx context.Context, limit, offset int) (*model.
 	defer resp.Body.Close()
 
 	var result struct {
-		Data []*model.Payment       `json:"data"`
+		Data []*Payment             `json:"data"`
 		Meta map[string]interface{} `json:"meta"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -160,9 +160,9 @@ func (c *Client) ListMyPayments(ctx context.Context, limit, offset int) (*model.
 		total = int(t)
 	}
 
-	return &model.PaymentConnection{
+	return &PaymentConnection{
 		Data: result.Data,
-		PageInfo: model.PageInfo{
+		PageInfo: common.PageInfo{
 			Total:   total,
 			Limit:   limit,
 			Offset:  offset,

@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/microservices-go/gateway/graph/model"
 )
 
 // Loader batches order requests
@@ -25,7 +23,7 @@ func NewLoader(orderServiceURL string) *Loader {
 }
 
 // LoadByID loads an order by ID
-func (l *Loader) LoadByID(ctx context.Context, orderID string) (*model.Order, error) {
+func (l *Loader) LoadByID(ctx context.Context, orderID string) (*Order, error) {
 	url := fmt.Sprintf("%s/api/v1/orders/%s", l.OrderServiceURL, orderID)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -47,7 +45,7 @@ func (l *Loader) LoadByID(ctx context.Context, orderID string) (*model.Order, er
 	}
 
 	var result struct {
-		Data *model.Order `json:"data"`
+		Data *Order `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -57,7 +55,7 @@ func (l *Loader) LoadByID(ctx context.Context, orderID string) (*model.Order, er
 }
 
 // LoadByUser loads orders for a specific user
-func (l *Loader) LoadByUser(ctx context.Context, userID string, limit, offset int) ([]*model.Order, error) {
+func (l *Loader) LoadByUser(ctx context.Context, userID string, limit, offset int) ([]*Order, error) {
 	url := fmt.Sprintf("%s/api/v1/orders/user/%s?limit=%d&offset=%d", l.OrderServiceURL, userID, limit, offset)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -75,7 +73,7 @@ func (l *Loader) LoadByUser(ctx context.Context, userID string, limit, offset in
 	defer resp.Body.Close()
 
 	var result struct {
-		Data []*model.Order `json:"data"`
+		Data []*Order `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err

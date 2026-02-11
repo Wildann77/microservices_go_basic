@@ -6,11 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/microservices-go/gateway/graph/model"
-	"github.com/microservices-go/gateway/internal/auth"
 	"github.com/microservices-go/gateway/internal/client"
 	"github.com/microservices-go/gateway/internal/common"
-	"github.com/microservices-go/gateway/internal/user"
 )
 
 type Client struct {
@@ -25,7 +22,7 @@ func NewClient(url string) *Client {
 	}
 }
 
-func (c *Client) Register(ctx context.Context, input user.RegisterInput) (*auth.AuthResponse, error) {
+func (c *Client) Register(ctx context.Context, input RegisterInput) (*AuthResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/users/register", c.url)
 	resp, err := c.MakeRequest(ctx, "POST", url, input, "")
 	if err != nil {
@@ -40,7 +37,7 @@ func (c *Client) Register(ctx context.Context, input user.RegisterInput) (*auth.
 	}
 
 	var result struct {
-		Data *model.AuthResponse `json:"data"`
+		Data *AuthResponse `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -49,7 +46,7 @@ func (c *Client) Register(ctx context.Context, input user.RegisterInput) (*auth.
 	return result.Data, nil
 }
 
-func (c *Client) Login(ctx context.Context, input user.LoginInput) (*auth.AuthResponse, error) {
+func (c *Client) Login(ctx context.Context, input LoginInput) (*AuthResponse, error) {
 	url := fmt.Sprintf("%s/api/v1/users/login", c.url)
 	resp, err := c.MakeRequest(ctx, "POST", url, input, "")
 	if err != nil {
@@ -64,7 +61,7 @@ func (c *Client) Login(ctx context.Context, input user.LoginInput) (*auth.AuthRe
 	}
 
 	var result struct {
-		Data *model.AuthResponse `json:"data"`
+		Data *AuthResponse `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -73,7 +70,7 @@ func (c *Client) Login(ctx context.Context, input user.LoginInput) (*auth.AuthRe
 	return result.Data, nil
 }
 
-func (c *Client) UpdateUser(ctx context.Context, id string, firstName *string, lastName *string, isActive *bool) (*user.User, error) {
+func (c *Client) UpdateUser(ctx context.Context, id string, firstName *string, lastName *string, isActive *bool) (*User, error) {
 	body := map[string]interface{}{}
 	if firstName != nil {
 		body["first_name"] = *firstName
@@ -97,7 +94,7 @@ func (c *Client) UpdateUser(ctx context.Context, id string, firstName *string, l
 	}
 
 	var result struct {
-		Data *model.User `json:"data"`
+		Data *User `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -117,7 +114,7 @@ func (c *Client) DeleteUser(ctx context.Context, id string) (bool, error) {
 	return resp.StatusCode == http.StatusNoContent, nil
 }
 
-func (c *Client) Me(ctx context.Context) (*user.User, error) {
+func (c *Client) Me(ctx context.Context) (*User, error) {
 	url := fmt.Sprintf("%s/api/v1/users/me", c.url)
 	resp, err := c.MakeRequest(ctx, "GET", url, nil, client.GetAuthHeader(ctx))
 	if err != nil {
@@ -130,7 +127,7 @@ func (c *Client) Me(ctx context.Context) (*user.User, error) {
 	}
 
 	var result struct {
-		Data *model.User `json:"data"`
+		Data *User `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -139,7 +136,7 @@ func (c *Client) Me(ctx context.Context) (*user.User, error) {
 	return result.Data, nil
 }
 
-func (c *Client) ListUsers(ctx context.Context, limit, offset int) (*user.UserConnection, error) {
+func (c *Client) ListUsers(ctx context.Context, limit, offset int) (*UserConnection, error) {
 	url := fmt.Sprintf("%s/api/v1/users?limit=%d&offset=%d", c.url, limit, offset)
 	resp, err := c.MakeRequest(ctx, "GET", url, nil, client.GetAuthHeader(ctx))
 	if err != nil {
@@ -148,7 +145,7 @@ func (c *Client) ListUsers(ctx context.Context, limit, offset int) (*user.UserCo
 	defer resp.Body.Close()
 
 	var result struct {
-		Data []*user.User           `json:"data"`
+		Data []*User                `json:"data"`
 		Meta map[string]interface{} `json:"meta"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -160,7 +157,7 @@ func (c *Client) ListUsers(ctx context.Context, limit, offset int) (*user.UserCo
 		total = int(t)
 	}
 
-	return &user.UserConnection{
+	return &UserConnection{
 		Data: result.Data,
 		PageInfo: common.PageInfo{
 			Total:   total,

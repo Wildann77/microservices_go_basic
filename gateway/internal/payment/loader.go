@@ -6,8 +6,6 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/microservices-go/gateway/graph/model"
 )
 
 // Loader batches payment requests
@@ -25,7 +23,7 @@ func NewLoader(paymentServiceURL string) *Loader {
 }
 
 // LoadByID loads a payment by ID
-func (l *Loader) LoadByID(ctx context.Context, paymentID string) (*model.Payment, error) {
+func (l *Loader) LoadByID(ctx context.Context, paymentID string) (*Payment, error) {
 	url := fmt.Sprintf("%s/api/v1/payments/%s", l.PaymentServiceURL, paymentID)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -47,7 +45,7 @@ func (l *Loader) LoadByID(ctx context.Context, paymentID string) (*model.Payment
 	}
 
 	var result struct {
-		Data *model.Payment `json:"data"`
+		Data *Payment `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -57,7 +55,7 @@ func (l *Loader) LoadByID(ctx context.Context, paymentID string) (*model.Payment
 }
 
 // LoadByOrder loads a payment for a specific order
-func (l *Loader) LoadByOrder(ctx context.Context, orderID string) (*model.Payment, error) {
+func (l *Loader) LoadByOrder(ctx context.Context, orderID string) (*Payment, error) {
 	url := fmt.Sprintf("%s/api/v1/payments/order/%s", l.PaymentServiceURL, orderID)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
@@ -83,7 +81,7 @@ func (l *Loader) LoadByOrder(ctx context.Context, orderID string) (*model.Paymen
 	}
 
 	var result struct {
-		Data *model.Payment `json:"data"`
+		Data *Payment `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err

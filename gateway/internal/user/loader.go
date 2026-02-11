@@ -6,15 +6,13 @@ import (
 	"fmt"
 	"net/http"
 	"time"
-
-	"github.com/microservices-go/gateway/graph/model"
 )
 
 // Loader batches user requests
 type Loader struct {
 	UserServiceURL string
 	Client         *http.Client
-	Cache          map[string]*model.User
+	Cache          map[string]*User
 }
 
 // NewLoader creates a new user loader
@@ -22,12 +20,12 @@ func NewLoader(userServiceURL string) *Loader {
 	return &Loader{
 		UserServiceURL: userServiceURL,
 		Client:         &http.Client{Timeout: 5 * time.Second},
-		Cache:          make(map[string]*model.User),
+		Cache:          make(map[string]*User),
 	}
 }
 
 // Load loads a user by ID
-func (l *Loader) Load(ctx context.Context, userID string) (*model.User, error) {
+func (l *Loader) Load(ctx context.Context, userID string) (*User, error) {
 	if user, ok := l.Cache[userID]; ok {
 		return user, nil
 	}
@@ -54,7 +52,7 @@ func (l *Loader) Load(ctx context.Context, userID string) (*model.User, error) {
 	}
 
 	var result struct {
-		Data *model.User `json:"data"`
+		Data *User `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -65,8 +63,8 @@ func (l *Loader) Load(ctx context.Context, userID string) (*model.User, error) {
 }
 
 // LoadMany loads multiple users by IDs
-func (l *Loader) LoadMany(ctx context.Context, userIDs []string) ([]*model.User, []error) {
-	users := make([]*model.User, len(userIDs))
+func (l *Loader) LoadMany(ctx context.Context, userIDs []string) ([]*User, []error) {
+	users := make([]*User, len(userIDs))
 	errors := make([]error, len(userIDs))
 
 	for i, id := range userIDs {

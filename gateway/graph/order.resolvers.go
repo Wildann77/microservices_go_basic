@@ -9,11 +9,13 @@ import (
 	"context"
 
 	"github.com/microservices-go/gateway/graph/generated"
-	"github.com/microservices-go/gateway/graph/model"
+	"github.com/microservices-go/gateway/internal/order"
+	"github.com/microservices-go/gateway/internal/payment"
+	"github.com/microservices-go/gateway/internal/user"
 )
 
 // CreateOrder is the resolver for the createOrder field.
-func (r *mutationResolver) CreateOrder(ctx context.Context, input model.CreateOrderInput) (*model.Order, error) {
+func (r *mutationResolver) CreateOrder(ctx context.Context, input order.CreateOrderInput) (*order.Order, error) {
 	me, err := r.Query().Me(ctx)
 	if err != nil {
 		return nil, err
@@ -22,35 +24,35 @@ func (r *mutationResolver) CreateOrder(ctx context.Context, input model.CreateOr
 }
 
 // UpdateOrderStatus is the resolver for the updateOrderStatus field.
-func (r *mutationResolver) UpdateOrderStatus(ctx context.Context, id string, status string) (*model.Order, error) {
+func (r *mutationResolver) UpdateOrderStatus(ctx context.Context, id string, status string) (*order.Order, error) {
 	return r.OrderClient.UpdateStatus(ctx, id, status)
 }
 
 // User is the resolver for the user field.
-func (r *orderResolver) User(ctx context.Context, obj *model.Order) (*model.User, error) {
+func (r *orderResolver) User(ctx context.Context, obj *order.Order) (*user.User, error) {
 	loaders := GetLoaders(ctx)
 	return loaders.UserLoader.Load(ctx, obj.UserID)
 }
 
 // ShippingAddress is the resolver for the shippingAddress field.
-func (r *orderResolver) ShippingAddress(ctx context.Context, obj *model.Order) (string, error) {
+func (r *orderResolver) ShippingAddress(ctx context.Context, obj *order.Order) (string, error) {
 	return obj.ShippingAddress, nil
 }
 
 // Payment is the resolver for the payment field.
-func (r *orderResolver) Payment(ctx context.Context, obj *model.Order) (*model.Payment, error) {
+func (r *orderResolver) Payment(ctx context.Context, obj *order.Order) (*payment.Payment, error) {
 	loaders := GetLoaders(ctx)
 	return loaders.PaymentLoader.LoadByOrder(ctx, obj.ID)
 }
 
 // Order is the resolver for the order field.
-func (r *queryResolver) Order(ctx context.Context, id string) (*model.Order, error) {
+func (r *queryResolver) Order(ctx context.Context, id string) (*order.Order, error) {
 	loaders := GetLoaders(ctx)
 	return loaders.OrderLoader.LoadByID(ctx, id)
 }
 
 // Orders is the resolver for the orders field.
-func (r *queryResolver) Orders(ctx context.Context, limit *int, offset *int) (*model.OrderConnection, error) {
+func (r *queryResolver) Orders(ctx context.Context, limit *int, offset *int) (*order.OrderConnection, error) {
 	l := 10
 	o := 0
 	if limit != nil {
@@ -63,7 +65,7 @@ func (r *queryResolver) Orders(ctx context.Context, limit *int, offset *int) (*m
 }
 
 // MyOrders is the resolver for the myOrders field.
-func (r *queryResolver) MyOrders(ctx context.Context, limit *int, offset *int) (*model.OrderConnection, error) {
+func (r *queryResolver) MyOrders(ctx context.Context, limit *int, offset *int) (*order.OrderConnection, error) {
 	l := 10
 	o := 0
 	if limit != nil {

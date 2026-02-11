@@ -9,11 +9,12 @@ import (
 	"context"
 
 	"github.com/microservices-go/gateway/graph/generated"
-	"github.com/microservices-go/gateway/graph/model"
+	"github.com/microservices-go/gateway/internal/order"
+	"github.com/microservices-go/gateway/internal/user"
 )
 
 // UpdateUser is the resolver for the updateUser field.
-func (r *mutationResolver) UpdateUser(ctx context.Context, id string, firstName *string, lastName *string, isActive *bool) (*model.User, error) {
+func (r *mutationResolver) UpdateUser(ctx context.Context, id string, firstName *string, lastName *string, isActive *bool) (*user.User, error) {
 	return r.UserClient.UpdateUser(ctx, id, firstName, lastName, isActive)
 }
 
@@ -23,18 +24,18 @@ func (r *mutationResolver) DeleteUser(ctx context.Context, id string) (bool, err
 }
 
 // Me is the resolver for the me field.
-func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
+func (r *queryResolver) Me(ctx context.Context) (*user.User, error) {
 	return r.UserClient.Me(ctx)
 }
 
 // User is the resolver for the user field.
-func (r *queryResolver) User(ctx context.Context, id string) (*model.User, error) {
+func (r *queryResolver) User(ctx context.Context, id string) (*user.User, error) {
 	loaders := GetLoaders(ctx)
 	return loaders.UserLoader.Load(ctx, id)
 }
 
 // Users is the resolver for the users field.
-func (r *queryResolver) Users(ctx context.Context, limit *int, offset *int) (*model.UserConnection, error) {
+func (r *queryResolver) Users(ctx context.Context, limit *int, offset *int) (*user.UserConnection, error) {
 	l := 10
 	o := 0
 	if limit != nil {
@@ -47,7 +48,7 @@ func (r *queryResolver) Users(ctx context.Context, limit *int, offset *int) (*mo
 }
 
 // Orders is the resolver for the orders field.
-func (r *userResolver) Orders(ctx context.Context, obj *model.User, limit *int, offset *int) ([]*model.Order, error) {
+func (r *userResolver) Orders(ctx context.Context, obj *user.User, limit *int, offset *int) ([]*order.Order, error) {
 	l := 10
 	o := 0
 	if limit != nil {

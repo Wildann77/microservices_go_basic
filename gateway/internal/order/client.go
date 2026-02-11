@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/microservices-go/gateway/graph/model"
 	"github.com/microservices-go/gateway/internal/client"
+	"github.com/microservices-go/gateway/internal/common"
 )
 
 type Client struct {
@@ -22,7 +22,7 @@ func NewClient(url string) *Client {
 	}
 }
 
-func (c *Client) CreateOrder(ctx context.Context, input model.CreateOrderInput, userID string) (*model.Order, error) {
+func (c *Client) CreateOrder(ctx context.Context, input CreateOrderInput, userID string) (*Order, error) {
 	// Build request body
 	items := make([]map[string]interface{}, len(input.Items))
 	for i, item := range input.Items {
@@ -56,7 +56,7 @@ func (c *Client) CreateOrder(ctx context.Context, input model.CreateOrderInput, 
 	}
 
 	var result struct {
-		Data *model.Order `json:"data"`
+		Data *Order `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (c *Client) CreateOrder(ctx context.Context, input model.CreateOrderInput, 
 	return result.Data, nil
 }
 
-func (c *Client) UpdateStatus(ctx context.Context, id string, status string) (*model.Order, error) {
+func (c *Client) UpdateStatus(ctx context.Context, id string, status string) (*Order, error) {
 	body := map[string]interface{}{"status": status}
 
 	url := fmt.Sprintf("%s/api/v1/orders/%s/status", c.url, id)
@@ -80,7 +80,7 @@ func (c *Client) UpdateStatus(ctx context.Context, id string, status string) (*m
 	}
 
 	var result struct {
-		Data *model.Order `json:"data"`
+		Data *Order `json:"data"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, err
@@ -89,7 +89,7 @@ func (c *Client) UpdateStatus(ctx context.Context, id string, status string) (*m
 	return result.Data, nil
 }
 
-func (c *Client) ListOrders(ctx context.Context, limit, offset int) (*model.OrderConnection, error) {
+func (c *Client) ListOrders(ctx context.Context, limit, offset int) (*OrderConnection, error) {
 	url := fmt.Sprintf("%s/api/v1/orders?limit=%d&offset=%d", c.url, limit, offset)
 	resp, err := c.MakeRequest(ctx, "GET", url, nil, client.GetAuthHeader(ctx))
 	if err != nil {
@@ -98,7 +98,7 @@ func (c *Client) ListOrders(ctx context.Context, limit, offset int) (*model.Orde
 	defer resp.Body.Close()
 
 	var result struct {
-		Data []*model.Order         `json:"data"`
+		Data []*Order               `json:"data"`
 		Meta map[string]interface{} `json:"meta"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -110,9 +110,9 @@ func (c *Client) ListOrders(ctx context.Context, limit, offset int) (*model.Orde
 		total = int(t)
 	}
 
-	return &model.OrderConnection{
+	return &OrderConnection{
 		Data: result.Data,
-		PageInfo: model.PageInfo{
+		PageInfo: common.PageInfo{
 			Total:   total,
 			Limit:   limit,
 			Offset:  offset,
@@ -121,7 +121,7 @@ func (c *Client) ListOrders(ctx context.Context, limit, offset int) (*model.Orde
 	}, nil
 }
 
-func (c *Client) ListMyOrders(ctx context.Context, limit, offset int) (*model.OrderConnection, error) {
+func (c *Client) ListMyOrders(ctx context.Context, limit, offset int) (*OrderConnection, error) {
 	url := fmt.Sprintf("%s/api/v1/orders/my-orders?limit=%d&offset=%d", c.url, limit, offset)
 	resp, err := c.MakeRequest(ctx, "GET", url, nil, client.GetAuthHeader(ctx))
 	if err != nil {
@@ -130,7 +130,7 @@ func (c *Client) ListMyOrders(ctx context.Context, limit, offset int) (*model.Or
 	defer resp.Body.Close()
 
 	var result struct {
-		Data []*model.Order         `json:"data"`
+		Data []*Order               `json:"data"`
 		Meta map[string]interface{} `json:"meta"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
@@ -142,9 +142,9 @@ func (c *Client) ListMyOrders(ctx context.Context, limit, offset int) (*model.Or
 		total = int(t)
 	}
 
-	return &model.OrderConnection{
+	return &OrderConnection{
 		Data: result.Data,
-		PageInfo: model.PageInfo{
+		PageInfo: common.PageInfo{
 			Total:   total,
 			Limit:   limit,
 			Offset:  offset,
