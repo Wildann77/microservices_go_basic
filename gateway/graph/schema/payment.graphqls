@@ -1,0 +1,44 @@
+type Payment {
+  id: ID!
+  orderId: String!
+  order: Order
+  userId: String!
+  user: User
+  amount: Float!
+  currency: String!
+  status: String!
+  method: String!
+  transactionId: String
+  provider: String
+  description: String
+  failureReason: String
+  paidAt: Time
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type PaymentConnection {
+  data: [Payment!]!
+  pageInfo: PageInfo!
+}
+
+input CreatePaymentInput {
+  orderId: String!
+  amount: Float!
+  currency: String
+  method: String!
+  description: String
+}
+
+extend type Query {
+  payment(id: ID!): Payment
+  paymentByOrder(orderId: ID!): Payment
+  payments(limit: Int = 10, offset: Int = 0): PaymentConnection!
+  myPayments(limit: Int = 10, offset: Int = 0): PaymentConnection!
+}
+
+extend type Mutation {
+  createPayment(input: CreatePaymentInput!): Payment!
+  processPayment(id: ID!): Payment!
+  refundPayment(id: ID!, amount: Float, reason: String): Payment!
+}

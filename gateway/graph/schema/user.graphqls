@@ -1,0 +1,28 @@
+type User {
+  id: ID!
+  email: String!
+  firstName: String!
+  lastName: String!
+  fullName: String!
+  role: String!
+  isActive: Boolean!
+  createdAt: Time!
+  updatedAt: Time!
+  orders(limit: Int = 10, offset: Int = 0): [Order!]!
+}
+
+type UserConnection {
+  data: [User!]!
+  pageInfo: PageInfo!
+}
+
+extend type Query {
+  me: User!
+  user(id: ID!): User
+  users(limit: Int = 10, offset: Int = 0): UserConnection!
+}
+
+extend type Mutation {
+  updateUser(id: ID!, firstName: String, lastName: String, isActive: Boolean): User!
+  deleteUser(id: ID!): Boolean!
+}

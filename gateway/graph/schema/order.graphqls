@@ -1,0 +1,52 @@
+type OrderItem {
+  id: ID!
+  productId: String!
+  productName: String!
+  quantity: Int!
+  unitPrice: Float!
+}
+
+type Order {
+  id: ID!
+  userId: String!
+  user: User
+  status: String!
+  totalAmount: Float!
+  currency: String!
+  shippingAddress: String!
+  notes: String
+  items: [OrderItem!]!
+  payment: Payment
+  createdAt: Time!
+  updatedAt: Time!
+}
+
+type OrderConnection {
+  data: [Order!]!
+  pageInfo: PageInfo!
+}
+
+input CreateOrderInput {
+  currency: String
+  shippingAddress: String!
+  notes: String
+  items: [CreateOrderItemInput!]!
+}
+
+input CreateOrderItemInput {
+  productId: String!
+  productName: String!
+  quantity: Int!
+  unitPrice: Float!
+}
+
+extend type Query {
+  order(id: ID!): Order
+  orders(limit: Int = 10, offset: Int = 0): OrderConnection!
+  myOrders(limit: Int = 10, offset: Int = 0): OrderConnection!
+}
+
+extend type Mutation {
+  createOrder(input: CreateOrderInput!): Order!
+  updateOrderStatus(id: ID!, status: String!): Order!
+}
