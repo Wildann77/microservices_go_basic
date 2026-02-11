@@ -3,6 +3,13 @@
 
 .PHONY: help build up down restart logs clean test lint proto
 
+# Load environment variables from .env file if it exists
+ifneq (,$(wildcard ./.env))
+    include .env
+    export
+endif
+
+
 # Default target
 help:
 	@echo "Microservices Go - Available Commands:"
