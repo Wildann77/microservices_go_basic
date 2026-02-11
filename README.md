@@ -79,6 +79,7 @@ make run-gateway
 | User Service REST | http://localhost:8081/api/v1/users |
 | Order Service REST | http://localhost:8082/api/v1/orders |
 | Payment Service REST | http://localhost:8083/api/v1/payments |
+| Adminer (DB UI) | http://localhost:8080 |
 | RabbitMQ Management | http://localhost:15672 (guest/guest) |
 | Jaeger UI | http://localhost:16686 |
 | Prometheus | http://localhost:9090 |
@@ -441,9 +442,25 @@ make up-d
 
 | Tool | URL | Purpose |
 |------|-----|---------|
+| Adminer | http://localhost:8080 | Database management UI |
 | RabbitMQ Management | http://localhost:15672 | Message queue monitoring |
 | Jaeger | http://localhost:16686 | Distributed tracing |
 | Prometheus | http://localhost:9090 | Metrics collection |
+
+### Connecting to Databases via Adminer
+
+When using Adminer (http://localhost:8080) to manage databases, use the following connection details:
+
+- **System**: `PostgreSQL`
+- **Server**: (Use the service name from docker-compose)
+  - `postgres-user` (for User Service)
+  - `postgres-order` (for Order Service)
+  - `postgres-payment` (for Payment Service)
+- **Username**: `postgres` (or as defined in your `.env`)
+- **Password**: `password` (or as defined in your `.env`)
+- **Database**: `user`, `order`, or `payment` (corresponding to the server)
+
+*Note: Use port `5432` (default) within the Docker network.*
 
 ## 🛠️ Tech Stack
 
