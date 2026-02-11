@@ -1,0 +1,152 @@
+type User {
+  id: ID!
+  email: String!
+  firstName: String!
+  lastName: String!
+  fullName: String!
+  role: String!
+  isActive: Boolean!
+  createdAt: String!
+  updatedAt: String!
+  orders(limit: Int = 10, offset: Int = 0): [Order!]!
+}
+
+type OrderItem {
+  id: ID!
+  productId: String!
+  productName: String!
+  quantity: Int!
+  unitPrice: Float!
+}
+
+type Order {
+  id: ID!
+  userId: String!
+  user: User
+  status: String!
+  totalAmount: Float!
+  currency: String!
+  shippingAddress: String!
+  notes: String
+  items: [OrderItem!]!
+  payment: Payment
+  createdAt: String!
+  updatedAt: String!
+}
+
+type Payment {
+  id: ID!
+  orderId: String!
+  order: Order
+  userId: String!
+  user: User
+  amount: Float!
+  currency: String!
+  status: String!
+  method: String!
+  transactionId: String
+  provider: String
+  description: String
+  failureReason: String
+  paidAt: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+type AuthResponse {
+  token: String!
+  user: User!
+}
+
+type PageInfo {
+  total: Int!
+  limit: Int!
+  offset: Int!
+  hasMore: Boolean!
+}
+
+type UserConnection {
+  data: [User!]!
+  pageInfo: PageInfo!
+}
+
+type OrderConnection {
+  data: [Order!]!
+  pageInfo: PageInfo!
+}
+
+type PaymentConnection {
+  data: [Payment!]!
+  pageInfo: PageInfo!
+}
+
+input RegisterInput {
+  email: String!
+  password: String!
+  firstName: String!
+  lastName: String!
+}
+
+input LoginInput {
+  email: String!
+  password: String!
+}
+
+input CreateOrderInput {
+  currency: String
+  shippingAddress: String!
+  notes: String
+  items: [CreateOrderItemInput!]!
+}
+
+input CreateOrderItemInput {
+  productId: String!
+  productName: String!
+  quantity: Int!
+  unitPrice: Float!
+}
+
+input CreatePaymentInput {
+  orderId: String!
+  amount: Float!
+  currency: String
+  method: String!
+  description: String
+}
+
+type Query {
+  # User queries
+  me: User!
+  user(id: ID!): User
+  users(limit: Int = 10, offset: Int = 0): UserConnection!
+  
+  # Order queries
+  order(id: ID!): Order
+  orders(limit: Int = 10, offset: Int = 0): OrderConnection!
+  myOrders(limit: Int = 10, offset: Int = 0): OrderConnection!
+  
+  # Payment queries
+  payment(id: ID!): Payment
+  paymentByOrder(orderId: ID!): Payment
+  payments(limit: Int = 10, offset: Int = 0): PaymentConnection!
+  myPayments(limit: Int = 10, offset: Int = 0): PaymentConnection!
+}
+
+type Mutation {
+  # Auth mutations
+  register(input: RegisterInput!): AuthResponse!
+  login(input: LoginInput!): AuthResponse!
+  
+  # User mutations
+  updateUser(id: ID!, firstName: String, lastName: String, isActive: Boolean): User!
+  deleteUser(id: ID!): Boolean!
+  
+  # Order mutations
+  createOrder(input: CreateOrderInput!): Order!
+  updateOrderStatus(id: ID!, status: String!): Order!
+  
+  # Payment mutations
+  createPayment(input: CreatePaymentInput!): Payment!
+  processPayment(id: ID!): Payment!
+  refundPayment(id: ID!, amount: Float, reason: String): Payment!
+}

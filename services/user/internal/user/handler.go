@@ -1,0 +1,226 @@
+package user
+
+import (
+	"encoding/json"
+	"net/http"
+	"strconv"
+
+	"github.com/go-chi/chi/v5"
+	"github.com/microservices-go/shared/errors"
+	"github.com/microservices-go/shared/logger"
+	"github.com/microservices-go/shared/middleware"
+)
+
+// Handler handles HTTP requests for user service
+type Handler struct {
+	service *Service
+}
+
+// NewHandler creates a new user handler
+func NewHandler(service *Service) *Handler {
+	return &Handler{service: service}
+}
+
+// RegisterRoutes registers all routes
+func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware *middleware.AuthMiddleware) {
+	r.Route("/api/v1/users", func(r chi.Router) {
+		// Public routes
+		r.Post("/register", h.Register)
+		r.Post("/login", h.Login)
+
+		// Protected routes
+		r.Group(func(r chi.Router) {
+			r.Use(authMiddleware.Authenticate)
+			
+			r.Get("/", h.List)
+			r.Get("/{id}", h.GetByID)
+			r.Put("/{id}", h.Update)
+			r.Delete("/{id}", h.Delete)
+			r.Get("/me", h.GetMe)
+		})
+	})
+}
+
+// Register handles user registration
+func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var req CreateUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.New(errors.ErrInvalidInput, "Invalid request body").WriteHTTPResponse(w)
+		return
+	}
+
+	user, err := h.service.Create(ctx, &req)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Failed to create user").WriteHTTPResponse(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": user,
+	})
+}
+
+// Login handles user login
+func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var req LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.New(errors.ErrInvalidInput, "Invalid request body").WriteHTTPResponse(w)
+		return
+	}
+
+	resp, err := h.service.Login(ctx, &req)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Login failed").WriteHTTPResponse(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": resp,
+	})
+}
+
+// GetByID gets user by ID
+func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := chi.URLParam(r, "id")
+
+	user, err := h.service.GetByID(ctx, id)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Failed to get user").WriteHTTPResponse(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": user,
+	})
+}
+
+// GetMe gets current user
+func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	
+	claims, ok := middleware.GetUserFromContext(ctx)
+	if !ok {
+		errors.New(errors.ErrUnauthorized, "User not authenticated").WriteHTTPResponse(w)
+		return
+	}
+
+	user, err := h.service.GetByID(ctx, claims.UserID)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Failed to get user").WriteHTTPResponse(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": user,
+	})
+}
+
+// List lists all users
+func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+
+	users, err := h.service.List(ctx, limit, offset)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Failed to list users").WriteHTTPResponse(w)
+		return
+	}
+
+	count, _ := h.service.Count(ctx)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": users,
+		"meta": map[string]interface{}{
+			"total":  count,
+			"limit":  limit,
+			"offset": offset,
+		},
+	})
+}
+
+// Update updates user
+func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := chi.URLParam(r, "id")
+
+	var req UpdateUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.New(errors.ErrInvalidInput, "Invalid request body").WriteHTTPResponse(w)
+		return
+	}
+
+	user, err := h.service.Update(ctx, id, &req)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Failed to update user").WriteHTTPResponse(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": user,
+	})
+}
+
+// Delete deletes user
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	id := chi.URLParam(r, "id")
+
+	if err := h.service.Delete(ctx, id); err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Failed to delete user").WriteHTTPResponse(w)
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
+}
+
+// HealthCheck handles health check
+func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
+	logger.Info("Health check called")
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{
+		"status": "healthy",
+		"service": "user-service",
+	})
+}
