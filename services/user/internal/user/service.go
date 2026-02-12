@@ -8,6 +8,7 @@ import (
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/middleware"
 	"github.com/microservices-go/shared/validator"
+	"gorm.io/gorm"
 )
 
 // Service handles user business logic
@@ -42,16 +43,7 @@ func (s *Service) Create(ctx context.Context, req *CreateUserRequest) (*LoginRes
 		return nil, err
 	}
 
-	// Check if email exists
-	exists, err := s.repo.ExistsByEmail(ctx, req.Email)
-	if err != nil {
-		return nil, err
-	}
-	if exists {
-		return nil, errors.New(errors.ErrConflict, "Email already exists")
-	}
-
-	// Create user
+	// Create user object
 	user := &User{
 		Email:     req.Email,
 		Password:  req.Password,
@@ -59,7 +51,23 @@ func (s *Service) Create(ctx context.Context, req *CreateUserRequest) (*LoginRes
 		LastName:  req.LastName,
 	}
 
-	if err := s.repo.Create(ctx, user); err != nil {
+	// Create user transactionally
+	if err := s.repo.WithTransaction(ctx, func(tx *gorm.DB) error {
+		// Check if email exists
+		exists, err := s.repo.ExistsByEmailWithDB(ctx, tx, req.Email)
+		if err != nil {
+			return err
+		}
+		if exists {
+			return errors.New(errors.ErrConflict, "Email already exists")
+		}
+
+		// Create user
+		if err := s.repo.CreateWithDB(ctx, tx, user); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
 		return nil, err
 	}
 

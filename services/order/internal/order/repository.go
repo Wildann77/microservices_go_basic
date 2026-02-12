@@ -19,14 +19,26 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
+// WithTransaction executes a function within a database transaction
+func (r *Repository) WithTransaction(ctx context.Context, fn func(*gorm.DB) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn(tx)
+	})
+}
+
 // Create creates a new order
 func (r *Repository) Create(ctx context.Context, order *Order) error {
+	return r.CreateWithDB(ctx, r.db, order)
+}
+
+// CreateWithDB creates a new order using the provided database connection
+func (r *Repository) CreateWithDB(ctx context.Context, db *gorm.DB, order *Order) error {
 	log := logger.WithContext(ctx)
 
 	// Calculate total before saving
 	order.CalculateTotal()
 
-	if err := r.db.WithContext(ctx).Create(order).Error; err != nil {
+	if err := db.WithContext(ctx).Create(order).Error; err != nil {
 		log.WithError(err).Error("Failed to create order")
 		return errors.Wrap(err, errors.ErrDatabaseError, "Failed to create order")
 	}
@@ -93,9 +105,14 @@ func (r *Repository) List(ctx context.Context, limit, offset int) ([]*Order, err
 
 // UpdateStatus updates order status
 func (r *Repository) UpdateStatus(ctx context.Context, id string, status OrderStatus) error {
+	return r.UpdateStatusWithDB(ctx, r.db, id, status)
+}
+
+// UpdateStatusWithDB updates order status using the provided database connection
+func (r *Repository) UpdateStatusWithDB(ctx context.Context, db *gorm.DB, id string, status OrderStatus) error {
 	log := logger.WithContext(ctx)
 
-	result := r.db.WithContext(ctx).Model(&Order{}).
+	result := db.WithContext(ctx).Model(&Order{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
 			"status":     status,
