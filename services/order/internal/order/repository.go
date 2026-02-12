@@ -18,22 +18,21 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
-// Create creates a new order
+// WithTransaction executes a function within a database transaction
+func (r *Repository) WithTransaction(ctx context.Context, fn func(*gorm.DB) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn(tx)
+	})
+}
+
+// Create creates a new order with items
 func (r *Repository) Create(ctx context.Context, order *Order) error {
 	log := logger.WithContext(ctx)
 
 	order.CalculateTotal()
 
-	// Use GORM transaction and associations
-	err := r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
-		// Save order and items automatically if Items field is populated
-		if err := tx.Create(order).Error; err != nil {
-			return err
-		}
-		return nil
-	})
-
-	if err != nil {
+	// Save order and items automatically via associations
+	if err := r.db.WithContext(ctx).Create(order).Error; err != nil {
 		log.WithError(err).Error("Failed to create order")
 		return errors.Wrap(err, errors.ErrDatabaseError, "Failed to create order")
 	}

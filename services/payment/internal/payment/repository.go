@@ -19,11 +19,23 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
+// WithTransaction executes a function within a database transaction
+func (r *Repository) WithTransaction(ctx context.Context, fn func(*gorm.DB) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn(tx)
+	})
+}
+
 // Create creates a new payment
 func (r *Repository) Create(ctx context.Context, payment *Payment) error {
+	return r.CreateWithDB(ctx, r.db, payment)
+}
+
+// CreateWithDB creates a new payment using the provided database connection
+func (r *Repository) CreateWithDB(ctx context.Context, db *gorm.DB, payment *Payment) error {
 	log := logger.WithContext(ctx)
 
-	if err := r.db.WithContext(ctx).Create(payment).Error; err != nil {
+	if err := db.WithContext(ctx).Create(payment).Error; err != nil {
 		log.WithError(err).Error("Failed to create payment")
 		return errors.Wrap(err, errors.ErrDatabaseError, "Failed to create payment")
 	}
@@ -107,6 +119,11 @@ func (r *Repository) List(ctx context.Context, limit, offset int) ([]*Payment, e
 
 // UpdateStatus updates payment status
 func (r *Repository) UpdateStatus(ctx context.Context, id string, status PaymentStatus, failureReason string) error {
+	return r.UpdateStatusWithDB(ctx, r.db, id, status, failureReason)
+}
+
+// UpdateStatusWithDB updates payment status using the provided database connection
+func (r *Repository) UpdateStatusWithDB(ctx context.Context, db *gorm.DB, id string, status PaymentStatus, failureReason string) error {
 	log := logger.WithContext(ctx)
 
 	updates := map[string]interface{}{
@@ -119,7 +136,7 @@ func (r *Repository) UpdateStatus(ctx context.Context, id string, status Payment
 		updates["paid_at"] = time.Now()
 	}
 
-	result := r.db.WithContext(ctx).Model(&Payment{}).
+	result := db.WithContext(ctx).Model(&Payment{}).
 		Where("id = ?", id).
 		Updates(updates)
 
@@ -138,9 +155,14 @@ func (r *Repository) UpdateStatus(ctx context.Context, id string, status Payment
 
 // UpdateTransactionID updates payment transaction ID
 func (r *Repository) UpdateTransactionID(ctx context.Context, id string, transactionID, provider string) error {
+	return r.UpdateTransactionIDWithDB(ctx, r.db, id, transactionID, provider)
+}
+
+// UpdateTransactionIDWithDB updates payment transaction ID using the provided database connection
+func (r *Repository) UpdateTransactionIDWithDB(ctx context.Context, db *gorm.DB, id string, transactionID, provider string) error {
 	log := logger.WithContext(ctx)
 
-	result := r.db.WithContext(ctx).Model(&Payment{}).
+	result := db.WithContext(ctx).Model(&Payment{}).
 		Where("id = ?", id).
 		Updates(map[string]interface{}{
 			"transaction_id": transactionID,

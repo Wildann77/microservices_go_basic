@@ -18,6 +18,13 @@ func NewRepository(db *gorm.DB) *Repository {
 	return &Repository{db: db}
 }
 
+// WithTransaction executes a function within a database transaction
+func (r *Repository) WithTransaction(ctx context.Context, fn func(*gorm.DB) error) error {
+	return r.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+		return fn(tx)
+	})
+}
+
 // Create creates a new user
 func (r *Repository) Create(ctx context.Context, user *User) error {
 	log := logger.WithContext(ctx)
