@@ -44,30 +44,6 @@ func (r *Repository) CreateWithDB(ctx context.Context, db *gorm.DB, payment *Pay
 	return nil
 }
 
-// CreateOutboxEvent creates a new given outbox event
-func (r *Repository) CreateOutboxEvent(ctx context.Context, tx *gorm.DB, event *OutboxEvent) error {
-	log := logger.WithContext(ctx)
-
-	if err := tx.WithContext(ctx).Create(event).Error; err != nil {
-		log.WithError(err).Error("Failed to create outbox event")
-		return errors.Wrap(err, errors.ErrDatabaseError, "Failed to create outbox event")
-	}
-
-	return nil
-}
-
-// UpdateOutboxEvent updates an outbox event
-func (r *Repository) UpdateOutboxEvent(ctx context.Context, id string, status string, errStr string) error {
-	updates := map[string]interface{}{
-		"status":       status,
-		"processed_at": time.Now(),
-	}
-	if errStr != "" {
-		updates["error_message"] = errStr
-	}
-	return r.db.WithContext(ctx).Model(&OutboxEvent{}).Where("id = ?", id).Updates(updates).Error
-}
-
 // GetByID gets payment by ID
 func (r *Repository) GetByID(ctx context.Context, id string) (*Payment, error) {
 	log := logger.WithContext(ctx)
