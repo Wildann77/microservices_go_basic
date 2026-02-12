@@ -22,28 +22,28 @@ const (
 type PaymentMethod string
 
 const (
-	PaymentMethodCard       PaymentMethod = "card"
+	PaymentMethodCard         PaymentMethod = "card"
 	PaymentMethodBankTransfer PaymentMethod = "bank_transfer"
-	PaymentMethodEWallet    PaymentMethod = "e_wallet"
-	PaymentMethodCash       PaymentMethod = "cash"
+	PaymentMethodEWallet      PaymentMethod = "e_wallet"
+	PaymentMethodCash         PaymentMethod = "cash"
 )
 
 // Payment represents a payment entity
 type Payment struct {
-	ID            string        `json:"id" db:"id"`
-	OrderID       string        `json:"order_id" db:"order_id"`
-	UserID        string        `json:"user_id" db:"user_id"`
-	Amount        float64       `json:"amount" db:"amount"`
-	Currency      string        `json:"currency" db:"currency"`
-	Status        PaymentStatus `json:"status" db:"status"`
-	Method        PaymentMethod `json:"method" db:"method"`
-	TransactionID string        `json:"transaction_id,omitempty" db:"transaction_id"`
-	Provider      string        `json:"provider,omitempty" db:"provider"`
-	Description   string        `json:"description,omitempty" db:"description"`
-	FailureReason string        `json:"failure_reason,omitempty" db:"failure_reason"`
-	PaidAt        *time.Time    `json:"paid_at,omitempty" db:"paid_at"`
-	CreatedAt     time.Time     `json:"created_at" db:"created_at"`
-	UpdatedAt     time.Time     `json:"updated_at" db:"updated_at"`
+	ID            string        `json:"id" gorm:"primaryKey;column:id"`
+	OrderID       string        `json:"order_id" gorm:"column:order_id"`
+	UserID        string        `json:"user_id" gorm:"column:user_id"`
+	Amount        float64       `json:"amount" gorm:"column:amount"`
+	Currency      string        `json:"currency" gorm:"column:currency"`
+	Status        PaymentStatus `json:"status" gorm:"column:status"`
+	Method        PaymentMethod `json:"method" gorm:"column:method"`
+	TransactionID string        `json:"transaction_id,omitempty" gorm:"column:transaction_id"`
+	Provider      string        `json:"provider,omitempty" gorm:"column:provider"`
+	Description   string        `json:"description,omitempty" gorm:"column:description"`
+	FailureReason string        `json:"failure_reason,omitempty" gorm:"column:failure_reason"`
+	PaidAt        *time.Time    `json:"paid_at,omitempty" gorm:"column:paid_at"`
+	CreatedAt     time.Time     `json:"created_at" gorm:"column:created_at"`
+	UpdatedAt     time.Time     `json:"updated_at" gorm:"column:updated_at"`
 }
 
 // TableName returns the table name
@@ -96,13 +96,13 @@ type CreatePaymentRequest struct {
 // ProcessPaymentRequest represents payment processing request
 type ProcessPaymentRequest struct {
 	PaymentMethodID string `json:"payment_method_id,omitempty"`
-	Token          string `json:"token,omitempty"`
+	Token           string `json:"token,omitempty"`
 }
 
 // RefundRequest represents refund request
 type RefundRequest struct {
-	Amount  float64 `json:"amount,omitempty" validate:"omitempty,gt=0"`
-	Reason  string  `json:"reason,omitempty" validate:"omitempty,max=500"`
+	Amount float64 `json:"amount,omitempty" validate:"omitempty,gt=0"`
+	Reason string  `json:"reason,omitempty" validate:"omitempty,max=500"`
 }
 
 // PaymentResponse represents payment response

@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,7 +10,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	chiMiddleware "github.com/go-chi/chi/v5/middleware"
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 
 	"github.com/microservices-go/shared/config"
 	"github.com/microservices-go/shared/logger"
@@ -33,18 +33,24 @@ func main() {
 	jwtConfig := config.LoadJWTConfig()
 	rabbitConfig := config.LoadRabbitMQConfig()
 
-	// Connect to database
-	db, err := sql.Open("postgres", dbConfig.DSN())
+	// Connect to database using GORM
+	db, err := gorm.Open(postgres.Open(dbConfig.DSN()), &gorm.Config{})
 	if err != nil {
 		log.Fatal("Failed to connect to database: " + err.Error())
 	}
-	defer db.Close()
+
+	// Get underlying sql.DB for closing and pinging
+	sqlDB, err := db.DB()
+	if err != nil {
+		log.Fatal("Failed to get sql.DB: " + err.Error())
+	}
+	defer sqlDB.Close()
 
 	// Test database connection
-	if err := db.Ping(); err != nil {
+	if err := sqlDB.Ping(); err != nil {
 		log.Fatal("Failed to ping database: " + err.Error())
 	}
-	log.Info("Connected to database")
+	log.Info("Connected to database via GORM")
 
 	// Connect to RabbitMQ
 	var rabbitClient *rabbitmq.Client
@@ -62,7 +68,7 @@ func main() {
 			log.Warn("Failed to declare exchange: " + err.Error())
 		} else {
 			log.Info("Connected to RabbitMQ")
-			
+
 			// Initialize publisher
 			publisher = rabbit.NewPublisher(rabbitClient)
 		}

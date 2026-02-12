@@ -69,13 +69,13 @@ func (o *Order) CalculateTotal() {
 
 // OrderItem represents an order item
 type OrderItem struct {
-	ID          string    `json:"id" db:"id"`
-	OrderID     string    `json:"order_id" db:"order_id"`
-	ProductID   string    `json:"product_id" db:"product_id"`
-	ProductName string    `json:"product_name" db:"product_name"`
-	Quantity    int       `json:"quantity" db:"quantity"`
-	UnitPrice   float64   `json:"unit_price" db:"unit_price"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	ID          string    `json:"id" gorm:"primaryKey;column:id"`
+	OrderID     string    `json:"order_id" gorm:"column:order_id"`
+	ProductID   string    `json:"product_id" gorm:"column:product_id"`
+	ProductName string    `json:"product_name" gorm:"column:product_name"`
+	Quantity    int       `json:"quantity" gorm:"column:quantity"`
+	UnitPrice   float64   `json:"unit_price" gorm:"column:unit_price"`
+	CreatedAt   time.Time `json:"created_at" gorm:"column:created_at"`
 }
 
 // TableName returns the table name
