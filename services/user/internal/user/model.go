@@ -9,15 +9,15 @@ import (
 
 // User represents a user entity
 type User struct {
-	ID        string    `json:"id" db:"id"`
-	Email     string    `json:"email" db:"email"`
-	Password  string    `json:"-" db:"password_hash"`
-	FirstName string    `json:"first_name" db:"first_name"`
-	LastName  string    `json:"last_name" db:"last_name"`
-	Role      string    `json:"role" db:"role"`
-	IsActive  bool      `json:"is_active" db:"is_active"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+	ID        string    `json:"id" gorm:"primaryKey;column:id"`
+	Email     string    `json:"email" gorm:"unique;column:email"`
+	Password  string    `json:"-" gorm:"column:password_hash"`
+	FirstName string    `json:"first_name" gorm:"column:first_name"`
+	LastName  string    `json:"last_name" gorm:"column:last_name"`
+	Role      string    `json:"role" gorm:"column:role"`
+	IsActive  bool      `json:"is_active" gorm:"column:is_active"`
+	CreatedAt time.Time `json:"created_at" gorm:"column:created_at"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"column:updated_at"`
 }
 
 // TableName returns the table name

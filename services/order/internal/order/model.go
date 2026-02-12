@@ -20,16 +20,16 @@ const (
 
 // Order represents an order entity
 type Order struct {
-	ID          string      `json:"id" db:"id"`
-	UserID      string      `json:"user_id" db:"user_id"`
-	Status      OrderStatus `json:"status" db:"status"`
-	TotalAmount float64     `json:"total_amount" db:"total_amount"`
-	Currency    string      `json:"currency" db:"currency"`
-	ShippingAddr string     `json:"shipping_address" db:"shipping_address"`
-	Notes       string      `json:"notes,omitempty" db:"notes"`
-	CreatedAt   time.Time   `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time   `json:"updated_at" db:"updated_at"`
-	Items       []*OrderItem `json:"items,omitempty" db:"-"`
+	ID           string       `json:"id" gorm:"primaryKey;column:id"`
+	UserID       string       `json:"user_id" gorm:"column:user_id"`
+	Status       OrderStatus  `json:"status" gorm:"column:status"`
+	TotalAmount  float64      `json:"total_amount" gorm:"column:total_amount"`
+	Currency     string       `json:"currency" gorm:"column:currency"`
+	ShippingAddr string       `json:"shipping_address" gorm:"column:shipping_address"`
+	Notes        string       `json:"notes,omitempty" gorm:"column:notes"`
+	CreatedAt    time.Time    `json:"created_at" gorm:"column:created_at"`
+	UpdatedAt    time.Time    `json:"updated_at" gorm:"column:updated_at"`
+	Items        []*OrderItem `json:"items,omitempty" gorm:"foreignKey:OrderID"`
 }
 
 // TableName returns the table name
@@ -69,13 +69,13 @@ func (o *Order) CalculateTotal() {
 
 // OrderItem represents an order item
 type OrderItem struct {
-	ID        string    `json:"id" db:"id"`
-	OrderID   string    `json:"order_id" db:"order_id"`
-	ProductID string    `json:"product_id" db:"product_id"`
-	ProductName string  `json:"product_name" db:"product_name"`
-	Quantity  int       `json:"quantity" db:"quantity"`
-	UnitPrice float64   `json:"unit_price" db:"unit_price"`
-	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	ID          string    `json:"id" db:"id"`
+	OrderID     string    `json:"order_id" db:"order_id"`
+	ProductID   string    `json:"product_id" db:"product_id"`
+	ProductName string    `json:"product_name" db:"product_name"`
+	Quantity    int       `json:"quantity" db:"quantity"`
+	UnitPrice   float64   `json:"unit_price" db:"unit_price"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 
 // TableName returns the table name
@@ -93,10 +93,10 @@ func (oi *OrderItem) BeforeCreate() {
 
 // CreateOrderRequest represents order creation request
 type CreateOrderRequest struct {
-	UserID       string                `json:"user_id" validate:"required,uuid"`
-	Currency     string                `json:"currency,omitempty" validate:"omitempty,len=3"`
-	ShippingAddr string                `json:"shipping_address" validate:"required,max=500"`
-	Notes        string                `json:"notes,omitempty" validate:"omitempty,max=1000"`
+	UserID       string                   `json:"user_id" validate:"required,uuid"`
+	Currency     string                   `json:"currency,omitempty" validate:"omitempty,len=3"`
+	ShippingAddr string                   `json:"shipping_address" validate:"required,max=500"`
+	Notes        string                   `json:"notes,omitempty" validate:"omitempty,max=1000"`
 	Items        []CreateOrderItemRequest `json:"items" validate:"required,min=1,dive"`
 }
 
@@ -115,15 +115,15 @@ type UpdateOrderStatusRequest struct {
 
 // OrderResponse represents order response
 type OrderResponse struct {
-	ID           string            `json:"id"`
-	UserID       string            `json:"user_id"`
-	Status       OrderStatus       `json:"status"`
-	TotalAmount  float64           `json:"total_amount"`
-	Currency     string            `json:"currency"`
-	ShippingAddr string            `json:"shipping_address"`
-	Notes        string            `json:"notes,omitempty"`
-	CreatedAt    time.Time         `json:"created_at"`
-	UpdatedAt    time.Time         `json:"updated_at"`
+	ID           string               `json:"id"`
+	UserID       string               `json:"user_id"`
+	Status       OrderStatus          `json:"status"`
+	TotalAmount  float64              `json:"total_amount"`
+	Currency     string               `json:"currency"`
+	ShippingAddr string               `json:"shipping_address"`
+	Notes        string               `json:"notes,omitempty"`
+	CreatedAt    time.Time            `json:"created_at"`
+	UpdatedAt    time.Time            `json:"updated_at"`
 	Items        []*OrderItemResponse `json:"items,omitempty"`
 }
 
