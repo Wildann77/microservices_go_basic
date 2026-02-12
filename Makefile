@@ -74,8 +74,7 @@ down:
 	docker compose down
 
 down-v:
-	docker compose down -v
-
+	docker compose down -
 restart:
 	docker compose restart
 
