@@ -74,11 +74,11 @@ Example:
 ```go
 import (
 	"context"
-	"database/sql"
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/rs/zerolog"
+	"gorm.io/gorm"
 
 	"github.com/microservices-go/shared/config"
 	"github.com/microservices-go/shared/logger"
@@ -86,13 +86,14 @@ import (
 ```
 
 ### Naming Conventions
+- **Modules**: Each service is a separate Go module.
 - **Packages**: lowercase, single word (e.g., `user`, `order`)
 - **Files**: snake_case (e.g., `handler.go`, `stripe_provider.go`)
 - **Types**: PascalCase (e.g., `UserService`, `CreateUserRequest`)
 - **Interfaces**: PascalCase with descriptive names (e.g., `EventPublisher`)
 - **Variables**: camelCase (e.g., `userRepo`, `jwtConfig`)
 - **Constants**: PascalCase for exported, camelCase for private
-- **DB tags**: snake_case (e.g., `db:"created_at"`)
+- **GORM/DB tags**: snake_case (e.g., `gorm:"column:created_at"`)
 - **JSON tags**: snake_case (e.g., `json:"first_name"`)
 
 ### Error Handling
@@ -127,11 +128,12 @@ log.WithError(err).Warn("Failed to publish event")
 // Levels: Debug(), Info(), Warn(), Error(), Fatal()
 ```
 
-### Struct Tags
+### Struct Tags (JSON, GORM, & Validation)
 ```go
 type User struct {
-    ID        string    `json:"id" db:"id"`
-    Email     string    `json:"email" db:"email" validate:"required,email"`
+    ID        string    `json:"id" gorm:"primaryKey;column:id"`
+    Email     string    `json:"email" gorm:"unique;column:email" validate:"required,email"`
+    CreatedAt time.Time `json:"created_at" gorm:"column:created_at"`
 }
 ```
 
@@ -173,7 +175,9 @@ if err := validator.ValidateStruct(req); err != nil {
 ```
 
 ### Environment Variables
-Use service-specific prefixes (e.g., `USER_PORT`, `ORDER_DB_HOST`)
+- Use service-specific prefixes (e.g., `USER_PORT`, `ORDER_DB_HOST`)
+- **Auto-loading**: Proyek ini menggunakan `godotenv` yang secara otomatis memuat file `.env` dari root folder saat inisialisasi paket `shared/config`.
+- Tidak perlu memanggil `godotenv.Load()` manual di setiap `main.go` karena sudah ditangani di level `shared`.
 
 ### Module Imports
 Each service imports shared via replace:
