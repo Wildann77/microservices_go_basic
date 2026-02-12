@@ -22,7 +22,6 @@ func NewRepository(db *gorm.DB) *Repository {
 func (r *Repository) Create(ctx context.Context, user *User) error {
 	log := logger.WithContext(ctx)
 
-	user.BeforeCreate()
 	if err := user.HashPassword(); err != nil {
 		return errors.Wrap(err, errors.ErrInternalServer, "Failed to hash password")
 	}
@@ -87,8 +86,6 @@ func (r *Repository) List(ctx context.Context, limit, offset int) ([]*User, erro
 // Update updates user
 func (r *Repository) Update(ctx context.Context, user *User) error {
 	log := logger.WithContext(ctx)
-
-	user.BeforeUpdate()
 
 	result := r.db.WithContext(ctx).Save(user)
 	if err := result.Error; err != nil {

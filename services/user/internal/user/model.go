@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 // User represents a user entity
@@ -47,7 +48,7 @@ func (u *User) CheckPassword(password string) bool {
 }
 
 // BeforeCreate prepares user before creation
-func (u *User) BeforeCreate() {
+func (u *User) BeforeCreate(db *gorm.DB) error {
 	if u.ID == "" {
 		u.ID = uuid.New().String()
 	}
@@ -58,11 +59,13 @@ func (u *User) BeforeCreate() {
 		u.Role = "user"
 	}
 	u.IsActive = true
+	return nil
 }
 
 // BeforeUpdate updates timestamps
-func (u *User) BeforeUpdate() {
+func (u *User) BeforeUpdate(db *gorm.DB) error {
 	u.UpdatedAt = time.Now()
+	return nil
 }
 
 // CreateUserRequest represents user creation request
