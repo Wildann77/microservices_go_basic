@@ -3,11 +3,14 @@ package user
 import (
 	"context"
 
+	"encoding/json"
+
 	"github.com/microservices-go/shared/config"
 	"github.com/microservices-go/shared/errors"
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/middleware"
 	"github.com/microservices-go/shared/validator"
+	"gorm.io/gorm"
 )
 
 // Service handles user business logic
@@ -59,22 +62,70 @@ func (s *Service) Create(ctx context.Context, req *CreateUserRequest) (*LoginRes
 		LastName:  req.LastName,
 	}
 
-	if err := s.repo.Create(ctx, user); err != nil {
-		return nil, err
-	}
+	// Transaction with Outbox Pattern
+	var outboxEvent *OutboxEvent
 
-	// Publish event
-	if s.publisher != nil {
-		event := &UserCreatedEvent{
+	if err := s.repo.WithTransaction(ctx, func(tx *gorm.DB) error {
+		// Create user
+		if err := s.repo.CreateWithDB(ctx, tx, user); err != nil {
+			return err
+		}
+
+		// Create Outbox Event
+		eventPayload := &UserCreatedEvent{
 			UserID:    user.ID,
 			Email:     user.Email,
 			FirstName: user.FirstName,
 			LastName:  user.LastName,
 			CreatedAt: user.CreatedAt,
 		}
-		if err := s.publisher.PublishEvent(ctx, "user.created", event); err != nil {
-			log.WithError(err).Warn("Failed to publish user created event")
+
+		payloadBytes, err := json.Marshal(eventPayload)
+		if err != nil {
+			return errors.Wrap(err, errors.ErrInternalServer, "Failed to marshal event payload")
 		}
+
+		outboxEvent = &OutboxEvent{
+			AggregateType: "User",
+			AggregateID:   user.ID,
+			Type:          "user.created",
+			Payload:       payloadBytes,
+			Status:        "PENDING",
+		}
+
+		if err := s.repo.CreateOutboxEvent(ctx, tx, outboxEvent); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	// Publish event asynchronously (Best Effort)
+	if s.publisher != nil && outboxEvent != nil {
+		go func(eventID string, payloadBytes []byte) {
+			// Create a background context
+			bgCtx := context.Background()
+
+			// Re-unmarshal to pass to publisher interface which expects interface{}
+			// Or better, just pass the struct we created if we had it, but payloadBytes is what we have.
+			// Actually publisher expects interface{}.
+			var eventStruct UserCreatedEvent
+			if err := json.Unmarshal(payloadBytes, &eventStruct); err != nil {
+				logger.WithContext(bgCtx).WithError(err).Error("Failed to unmarshal event for publishing")
+				return
+			}
+
+			if err := s.publisher.PublishEvent(bgCtx, "user.created", &eventStruct); err != nil {
+				logger.WithContext(bgCtx).WithError(err).Warn("Failed to publish user created event from outbox")
+				// Update retry count or status to FAILED in a real system
+				_ = s.repo.UpdateOutboxEvent(bgCtx, eventID, "FAILED", err.Error())
+			} else {
+				// Mark as processed
+				_ = s.repo.UpdateOutboxEvent(bgCtx, eventID, "PROCESSED", "")
+			}
+		}(outboxEvent.ID, outboxEvent.Payload)
 	}
 
 	// Generate JWT token

@@ -1,6 +1,7 @@
 package user
 
 import (
+	"encoding/json"
 	"time"
 
 	"github.com/google/uuid"
@@ -128,4 +129,35 @@ type UserCreatedEvent struct {
 	FirstName string    `json:"first_name"`
 	LastName  string    `json:"last_name"`
 	CreatedAt time.Time `json:"created_at"`
+}
+
+// OutboxEvent represents an event to be published
+type OutboxEvent struct {
+	ID            string          `gorm:"primaryKey;column:id"`
+	AggregateType string          `gorm:"column:aggregate_type"`
+	AggregateID   string          `gorm:"column:aggregate_id"`
+	Type          string          `gorm:"column:type"`
+	Payload       json.RawMessage `gorm:"column:payload;type:jsonb"`
+	Status        string          `gorm:"column:status"`
+	RetryCount    int             `gorm:"column:retry_count"`
+	ErrorMessage  string          `gorm:"column:error_message"`
+	CreatedAt     time.Time       `gorm:"column:created_at"`
+	ProcessedAt   *time.Time      `gorm:"column:processed_at"`
+}
+
+// TableName returns the table name
+func (OutboxEvent) TableName() string {
+	return "outbox_events"
+}
+
+// BeforeCreate sets default values
+func (e *OutboxEvent) BeforeCreate(db *gorm.DB) error {
+	if e.ID == "" {
+		e.ID = uuid.New().String()
+	}
+	e.CreatedAt = time.Now()
+	if e.Status == "" {
+		e.Status = "PENDING"
+	}
+	return nil
 }

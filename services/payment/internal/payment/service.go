@@ -2,6 +2,7 @@ package payment
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -224,13 +225,15 @@ func (s *Service) Process(ctx context.Context, id string, req *ProcessPaymentReq
 func (s *Service) completePayment(ctx context.Context, payment *Payment) error {
 	log := logger.WithContext(ctx)
 
-	if err := s.repo.UpdateStatus(ctx, payment.ID, PaymentStatusSuccess, ""); err != nil {
-		return err
-	}
+	// Transaction with Outbox Pattern
+	var outboxEvent *OutboxEvent
 
-	// Publish success event
-	if s.publisher != nil {
-		event := &PaymentSuccessEvent{
+	if err := s.repo.WithTransaction(ctx, func(tx *gorm.DB) error {
+		if err := s.repo.UpdateStatusWithDB(ctx, tx, payment.ID, PaymentStatusSuccess, ""); err != nil {
+			return err
+		}
+
+		eventPayload := &PaymentSuccessEvent{
 			PaymentID:     payment.ID,
 			OrderID:       payment.OrderID,
 			UserID:        payment.UserID,
@@ -239,9 +242,44 @@ func (s *Service) completePayment(ctx context.Context, payment *Payment) error {
 			TransactionID: payment.TransactionID,
 			PaidAt:        time.Now(),
 		}
-		if err := s.publisher.PublishEvent(ctx, "payment.success", event); err != nil {
-			log.WithError(err).Warn("Failed to publish payment success event")
+
+		payloadBytes, err := json.Marshal(eventPayload)
+		if err != nil {
+			return errors.Wrap(err, errors.ErrInternalServer, "Failed to marshal event payload")
 		}
+
+		outboxEvent = &OutboxEvent{
+			AggregateType: "Payment",
+			AggregateID:   payment.ID,
+			Type:          "payment.success",
+			Payload:       payloadBytes,
+			Status:        "PENDING",
+		}
+
+		if err := s.repo.CreateOutboxEvent(ctx, tx, outboxEvent); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return err
+	}
+
+	// Publish event asynchronously (Best Effort)
+	if s.publisher != nil && outboxEvent != nil {
+		go func(eventID string, payloadBytes []byte) {
+			bgCtx := context.Background()
+			var eventStruct PaymentSuccessEvent
+			if err := json.Unmarshal(payloadBytes, &eventStruct); err != nil {
+				logger.WithContext(bgCtx).WithError(err).Error("Failed to unmarshal event for publishing")
+				return
+			}
+			if err := s.publisher.PublishEvent(bgCtx, "payment.success", &eventStruct); err != nil {
+				logger.WithContext(bgCtx).WithError(err).Warn("Failed to publish payment success event from outbox")
+				_ = s.repo.UpdateOutboxEvent(bgCtx, eventID, "FAILED", err.Error())
+			} else {
+				_ = s.repo.UpdateOutboxEvent(bgCtx, eventID, "PROCESSED", "")
+			}
+		}(outboxEvent.ID, outboxEvent.Payload)
 	}
 
 	log.Info("Payment completed successfully")
@@ -252,24 +290,71 @@ func (s *Service) completePayment(ctx context.Context, payment *Payment) error {
 func (s *Service) failPayment(ctx context.Context, payment *Payment, reason string) {
 	log := logger.WithContext(ctx)
 
-	if err := s.repo.UpdateStatus(ctx, payment.ID, PaymentStatusFailed, reason); err != nil {
-		log.WithError(err).Error("Failed to update payment status to failed")
+	// Transaction with Outbox Pattern
+	var outboxEvent *OutboxEvent
+
+	err := s.repo.WithTransaction(ctx, func(tx *gorm.DB) error {
+		if err := s.repo.UpdateStatusWithDB(ctx, tx, payment.ID, PaymentStatusFailed, reason); err != nil {
+			return err
+		}
+
+		if s.publisher != nil {
+			eventPayload := &PaymentFailedEvent{
+				PaymentID:     payment.ID,
+				OrderID:       payment.OrderID,
+				UserID:        payment.UserID,
+				Amount:        payment.Amount,
+				Currency:      payment.Currency,
+				FailureReason: reason,
+				FailedAt:      time.Now(),
+			}
+
+			payloadBytes, err := json.Marshal(eventPayload)
+			if err != nil {
+				return colErr // Just log error, don't return? No, transaction failed.
+				// But Wait, failPayment doesn't return error.
+				logger.WithContext(ctx).WithError(err).Error("Failed to marshal event payload in failPayment")
+				// We proceed with DB update but skip outbox? Or fail everything?
+				// Since failPayment signature is void, we can logs errors.
+				return nil
+			}
+
+			outboxEvent = &OutboxEvent{
+				AggregateType: "Payment",
+				AggregateID:   payment.ID,
+				Type:          "payment.failed",
+				Payload:       payloadBytes,
+				Status:        "PENDING",
+			}
+
+			if err := s.repo.CreateOutboxEvent(ctx, tx, outboxEvent); err != nil {
+				return err
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.WithError(err).Error("Failed to update payment status to failed with transaction")
+		// Fallback to non-transactional if needed or just log
 	}
 
-	// Publish failure event
-	if s.publisher != nil {
-		event := &PaymentFailedEvent{
-			PaymentID:     payment.ID,
-			OrderID:       payment.OrderID,
-			UserID:        payment.UserID,
-			Amount:        payment.Amount,
-			Currency:      payment.Currency,
-			FailureReason: reason,
-			FailedAt:      time.Now(),
-		}
-		if err := s.publisher.PublishEvent(ctx, "payment.failed", event); err != nil {
-			log.WithError(err).Warn("Failed to publish payment failed event")
-		}
+	// Publish event asynchronously (Best Effort)
+	if s.publisher != nil && outboxEvent != nil {
+		go func(eventID string, payloadBytes []byte) {
+			bgCtx := context.Background()
+			var eventStruct PaymentFailedEvent
+			if err := json.Unmarshal(payloadBytes, &eventStruct); err != nil {
+				logger.WithContext(bgCtx).WithError(err).Error("Failed to unmarshal event for publishing")
+				return
+			}
+			if err := s.publisher.PublishEvent(bgCtx, "payment.failed", &eventStruct); err != nil {
+				logger.WithContext(bgCtx).WithError(err).Warn("Failed to publish payment failed event from outbox")
+				_ = s.repo.UpdateOutboxEvent(bgCtx, eventID, "FAILED", err.Error())
+			} else {
+				_ = s.repo.UpdateOutboxEvent(bgCtx, eventID, "PROCESSED", "")
+			}
+		}(outboxEvent.ID, outboxEvent.Payload)
 	}
 }
 

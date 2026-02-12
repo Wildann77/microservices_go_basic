@@ -3,8 +3,12 @@ package order
 import (
 	"context"
 
+	"encoding/json"
+
+	"github.com/microservices-go/shared/errors"
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/validator"
+	"gorm.io/gorm"
 )
 
 // Service handles order business logic
@@ -57,13 +61,17 @@ func (s *Service) Create(ctx context.Context, req *CreateOrderRequest) (*OrderRe
 		Items:        items,
 	}
 
-	if err := s.repo.Create(ctx, order); err != nil {
-		return nil, err
-	}
+	// Transaction with Outbox Pattern
+	var outboxEvent *OutboxEvent
 
-	// Publish event
-	if s.publisher != nil {
-		event := &OrderCreatedEvent{
+	if err := s.repo.WithTransaction(ctx, func(tx *gorm.DB) error {
+		// Create order
+		if err := s.repo.CreateWithDB(ctx, tx, order); err != nil {
+			return err
+		}
+
+		// Create Outbox Event
+		eventPayload := &OrderCreatedEvent{
 			OrderID:     order.ID,
 			UserID:      order.UserID,
 			TotalAmount: order.TotalAmount,
@@ -71,9 +79,47 @@ func (s *Service) Create(ctx context.Context, req *CreateOrderRequest) (*OrderRe
 			Status:      string(order.Status),
 			CreatedAt:   order.CreatedAt,
 		}
-		if err := s.publisher.PublishEvent(ctx, "order.created", event); err != nil {
-			log.WithError(err).Warn("Failed to publish order created event")
+
+		payloadBytes, err := json.Marshal(eventPayload)
+		if err != nil {
+			return errors.Wrap(err, errors.ErrInternalServer, "Failed to marshal event payload")
 		}
+
+		outboxEvent = &OutboxEvent{
+			AggregateType: "Order",
+			AggregateID:   order.ID,
+			Type:          "order.created",
+			Payload:       payloadBytes,
+			Status:        "PENDING",
+		}
+
+		if err := s.repo.CreateOutboxEvent(ctx, tx, outboxEvent); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	// Publish event asynchronously (Best Effort)
+	if s.publisher != nil && outboxEvent != nil {
+		go func(eventID string, payloadBytes []byte) {
+			bgCtx := context.Background()
+
+			var eventStruct OrderCreatedEvent
+			if err := json.Unmarshal(payloadBytes, &eventStruct); err != nil {
+				logger.WithContext(bgCtx).WithError(err).Error("Failed to unmarshal event for publishing")
+				return
+			}
+
+			if err := s.publisher.PublishEvent(bgCtx, "order.created", &eventStruct); err != nil {
+				logger.WithContext(bgCtx).WithError(err).Warn("Failed to publish order created event from outbox")
+				_ = s.repo.UpdateOutboxEvent(bgCtx, eventID, "FAILED", err.Error())
+			} else {
+				_ = s.repo.UpdateOutboxEvent(bgCtx, eventID, "PROCESSED", "")
+			}
+		}(outboxEvent.ID, outboxEvent.Payload)
 	}
 
 	return order.ToResponse(), nil
