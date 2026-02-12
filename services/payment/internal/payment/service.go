@@ -8,6 +8,7 @@ import (
 	"github.com/microservices-go/shared/errors"
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/validator"
+	"gorm.io/gorm"
 )
 
 // PaymentProvider interface for payment providers
@@ -85,20 +86,32 @@ func (s *Service) Create(ctx context.Context, req *CreatePaymentRequest) (*Payme
 		Description: req.Description,
 	}
 
-	if err := s.repo.Create(ctx, payment); err != nil {
-		return nil, err
-	}
-
-	// Create payment intent with provider if card payment
+	// Use transaction for database operations
+	var transactionID, provider string
 	if req.Method == PaymentMethodCard && s.provider != nil && req.Token != "" {
+		// Create payment intent with provider first (external call)
 		result, err := s.provider.CreatePaymentIntent(ctx, payment.Amount, payment.Currency)
 		if err != nil {
 			log.WithError(err).Warn("Failed to create payment intent")
 		} else {
-			if err := s.repo.UpdateTransactionID(ctx, payment.ID, result.PaymentIntentID, "stripe"); err != nil {
-				log.WithError(err).Warn("Failed to update transaction ID")
+			transactionID = result.PaymentIntentID
+			provider = "stripe"
+		}
+	}
+
+	// Create payment and update transaction ID in single transaction
+	if err := s.repo.WithTransaction(ctx, func(tx *gorm.DB) error {
+		if err := s.repo.CreateWithDB(ctx, tx, payment); err != nil {
+			return err
+		}
+		if transactionID != "" {
+			if err := s.repo.UpdateTransactionIDWithDB(ctx, tx, payment.ID, transactionID, provider); err != nil {
+				return err
 			}
 		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return payment.ToResponse(), nil
