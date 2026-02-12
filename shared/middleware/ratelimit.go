@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
-	"golang.org/x/time/rate"
 	"github.com/microservices-go/shared/config"
+	"golang.org/x/time/rate"
 )
 
 // RateLimiter implements token bucket rate limiting
@@ -87,7 +87,7 @@ func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 func (rl *RateLimiter) PerUserMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		key := "anonymous"
-		
+
 		if claims, ok := GetUserFromContext(r.Context()); ok {
 			key = claims.UserID
 		}

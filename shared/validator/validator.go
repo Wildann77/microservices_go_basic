@@ -13,9 +13,9 @@ type Validator struct {
 // New creates a new validator instance
 func New() *Validator {
 	v := validator.New()
-	
+
 	// Register custom validations here if needed
-	
+
 	return &Validator{validate: v}
 }
 
@@ -45,11 +45,11 @@ func formatValidationErrors(errs validator.ValidationErrors) error {
 		field := err.Field()
 		tag := err.Tag()
 		param := err.Param()
-		
+
 		msg := getErrorMessage(tag, param)
 		details[field] = msg
 	}
-	
+
 	return errors.New(errors.ErrValidationFailed, "Validation failed").WithDetails(formatDetails(details))
 }
 

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // PaymentStatus represents payment status
@@ -52,7 +53,7 @@ func (Payment) TableName() string {
 }
 
 // BeforeCreate prepares payment before creation
-func (p *Payment) BeforeCreate() {
+func (p *Payment) BeforeCreate(db *gorm.DB) error {
 	if p.ID == "" {
 		p.ID = uuid.New().String()
 	}
@@ -65,11 +66,13 @@ func (p *Payment) BeforeCreate() {
 	if p.Currency == "" {
 		p.Currency = "USD"
 	}
+	return nil
 }
 
 // BeforeUpdate updates timestamps
-func (p *Payment) BeforeUpdate() {
+func (p *Payment) BeforeUpdate(db *gorm.DB) error {
 	p.UpdatedAt = time.Now()
+	return nil
 }
 
 // IsSuccessful checks if payment was successful

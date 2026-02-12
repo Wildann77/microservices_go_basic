@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // OrderStatus represents order status
@@ -38,7 +39,7 @@ func (Order) TableName() string {
 }
 
 // BeforeCreate prepares order before creation
-func (o *Order) BeforeCreate() {
+func (o *Order) BeforeCreate(db *gorm.DB) error {
 	if o.ID == "" {
 		o.ID = uuid.New().String()
 	}
@@ -51,11 +52,13 @@ func (o *Order) BeforeCreate() {
 	if o.Currency == "" {
 		o.Currency = "USD"
 	}
+	return nil
 }
 
 // BeforeUpdate updates timestamps
-func (o *Order) BeforeUpdate() {
+func (o *Order) BeforeUpdate(db *gorm.DB) error {
 	o.UpdatedAt = time.Now()
+	return nil
 }
 
 // CalculateTotal calculates total amount from items
@@ -84,11 +87,12 @@ func (OrderItem) TableName() string {
 }
 
 // BeforeCreate prepares order item before creation
-func (oi *OrderItem) BeforeCreate() {
+func (oi *OrderItem) BeforeCreate(db *gorm.DB) error {
 	if oi.ID == "" {
 		oi.ID = uuid.New().String()
 	}
 	oi.CreatedAt = time.Now()
+	return nil
 }
 
 // CreateOrderRequest represents order creation request

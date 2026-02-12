@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/microservices-go/services/order/internal/order"
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/rabbitmq"
-	"github.com/microservices-go/services/order/internal/order"
 )
 
 // Consumer handles RabbitMQ events

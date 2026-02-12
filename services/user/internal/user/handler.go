@@ -31,7 +31,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware *middleware.AuthMi
 		// Protected routes
 		r.Group(func(r chi.Router) {
 			r.Use(authMiddleware.Authenticate)
-			
+
 			r.Get("/", h.List)
 			r.Get("/{id}", h.GetByID)
 			r.Put("/{id}", h.Update)
@@ -118,7 +118,7 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 // GetMe gets current user
 func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
-	
+
 	claims, ok := middleware.GetUserFromContext(ctx)
 	if !ok {
 		errors.New(errors.ErrUnauthorized, "User not authenticated").WriteHTTPResponse(w)
@@ -220,7 +220,7 @@ func (h *Handler) HealthCheck(w http.ResponseWriter, r *http.Request) {
 	logger.Info("Health check called")
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{
-		"status": "healthy",
+		"status":  "healthy",
 		"service": "user-service",
 	})
 }

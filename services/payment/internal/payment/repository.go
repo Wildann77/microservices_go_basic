@@ -23,8 +23,6 @@ func NewRepository(db *gorm.DB) *Repository {
 func (r *Repository) Create(ctx context.Context, payment *Payment) error {
 	log := logger.WithContext(ctx)
 
-	payment.BeforeCreate()
-
 	if err := r.db.WithContext(ctx).Create(payment).Error; err != nil {
 		log.WithError(err).Error("Failed to create payment")
 		return errors.Wrap(err, errors.ErrDatabaseError, "Failed to create payment")

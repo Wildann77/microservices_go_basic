@@ -22,7 +22,6 @@ func NewRepository(db *gorm.DB) *Repository {
 func (r *Repository) Create(ctx context.Context, order *Order) error {
 	log := logger.WithContext(ctx)
 
-	order.BeforeCreate()
 	order.CalculateTotal()
 
 	// Use GORM transaction and associations

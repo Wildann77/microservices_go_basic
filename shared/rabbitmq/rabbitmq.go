@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/microservices-go/shared/logger"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 // Client wraps RabbitMQ connection
@@ -107,9 +107,9 @@ func (c *Client) Publish(ctx context.Context, exchange, routingKey string, event
 		false,      // mandatory
 		false,      // immediate
 		amqp.Publishing{
-			ContentType:  "application/json",
-			Body:         body,
-			Timestamp:    time.Now(),
+			ContentType: "application/json",
+			Body:        body,
+			Timestamp:   time.Now(),
 			Headers: amqp.Table{
 				"trace_id": event.TraceID,
 				"service":  event.Service,
@@ -133,16 +133,16 @@ func (c *Client) Consume(queue string) (<-chan amqp.Delivery, error) {
 
 // Publisher handles event publishing
 type Publisher struct {
-	client     *Client
-	exchange   string
+	client      *Client
+	exchange    string
 	serviceName string
 }
 
 // NewPublisher creates a new event publisher
 func NewPublisher(client *Client, exchange, serviceName string) *Publisher {
 	return &Publisher{
-		client:     client,
-		exchange:   exchange,
+		client:      client,
+		exchange:    exchange,
 		serviceName: serviceName,
 	}
 }
@@ -163,9 +163,9 @@ func (p *Publisher) PublishEvent(ctx context.Context, eventType string, payload 
 	}
 
 	routingKey := fmt.Sprintf("%s.%s", p.serviceName, eventType)
-	
+
 	logger.WithContext(ctx).Infof("Publishing event: %s", eventType)
-	
+
 	return p.client.Publish(ctx, p.exchange, routingKey, event)
 }
 
@@ -205,7 +205,7 @@ func (c *Consumer) Start(queue string) error {
 			}
 
 			ctx := logger.SetTraceID(context.Background(), event.TraceID)
-			
+
 			handler, ok := c.handlers[event.Type]
 			if !ok {
 				logger.WithContext(ctx).Warnf("No handler for event type: %s", event.Type)

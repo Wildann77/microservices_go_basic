@@ -19,7 +19,7 @@ type PaymentProvider interface {
 
 // PaymentIntentResult represents payment intent result
 type PaymentIntentResult struct {
-	ClientSecret  string
+	ClientSecret    string
 	PaymentIntentID string
 }
 

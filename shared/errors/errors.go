@@ -20,9 +20,9 @@ const (
 	ErrRateLimit        ErrorCode = "RATE_LIMIT_EXCEEDED"
 
 	// 5xx Server Errors
-	ErrInternalServer ErrorCode = "INTERNAL_SERVER_ERROR"
+	ErrInternalServer     ErrorCode = "INTERNAL_SERVER_ERROR"
 	ErrServiceUnavailable ErrorCode = "SERVICE_UNAVAILABLE"
-	ErrDatabaseError  ErrorCode = "DATABASE_ERROR"
+	ErrDatabaseError      ErrorCode = "DATABASE_ERROR"
 )
 
 // AppError represents a structured application error

@@ -16,9 +16,9 @@ const UserContextKey authContextKey = "user"
 
 // UserClaims represents JWT claims
 type UserClaims struct {
-	UserID    string `json:"user_id"`
-	Email     string `json:"email"`
-	Role      string `json:"role"`
+	UserID string `json:"user_id"`
+	Email  string `json:"email"`
+	Role   string `json:"role"`
 	jwt.RegisteredClaims
 }
 

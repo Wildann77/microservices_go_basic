@@ -21,7 +21,7 @@ func NewStripeProvider() *StripeProvider {
 		key = "sk_test_dummy_key" // For development
 	}
 	stripe.Key = key
-	
+
 	return &StripeProvider{
 		secretKey: key,
 	}
