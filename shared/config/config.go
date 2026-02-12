@@ -3,9 +3,30 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/joho/godotenv"
 )
+
+func init() {
+	// Try to load .env from current directory or parent directories
+	// This is useful for local development
+	currDir, _ := os.Getwd()
+	for {
+		envPath := filepath.Join(currDir, ".env")
+		if _, err := os.Stat(envPath); err == nil {
+			_ = godotenv.Load(envPath)
+			break
+		}
+		parentDir := filepath.Dir(currDir)
+		if parentDir == currDir {
+			break
+		}
+		currDir = parentDir
+	}
+}
 
 // DatabaseConfig holds database configuration
 type DatabaseConfig struct {
@@ -47,9 +68,9 @@ func (c *RabbitMQConfig) URL() string {
 
 // JWTConfig holds JWT configuration
 type JWTConfig struct {
-	Secret     string
-	ExpiresIn  int // hours
-	Issuer     string
+	Secret    string
+	ExpiresIn int // hours
+	Issuer    string
 }
 
 // RateLimitConfig holds rate limiting configuration
