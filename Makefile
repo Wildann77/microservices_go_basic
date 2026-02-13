@@ -44,8 +44,12 @@ help:
 	@echo "  make test-order     - Run Order Service tests"
 	@echo "  make test-payment   - Run Payment Service tests"
 	@echo ""
-	@echo "  make migrate-up     - Run all database migrations"
-	@echo "  make migrate-down   - Rollback all database migrations"
+	@echo "  make migrate-up     - Run all database migrations (auto on start)"
+	@echo "  make migrate-down   - Rollback one migration"
+	@echo "  make migrate-status - Check migration status"
+	@echo "  make migrate-user   - Run User Service migrations manually"
+	@echo "  make migrate-order  - Run Order Service migrations manually"
+	@echo "  make migrate-payment - Run Payment Service migrations manually"
 	@echo ""
 	@echo "  make deps           - Download all Go dependencies"
 	@echo "  make tidy           - Tidy all Go modules"
@@ -182,21 +186,75 @@ test-coverage:
 	cd services/order && go test -cover ./...
 	cd services/payment && go test -cover ./...
 
-# Database migration commands
+# Database migration commands (manual - auto-migrate runs on service start)
+# Usage: make migrate-up, make migrate-down, make migrate-status
+# Or run manually: cd services/<service> && go run cmd/migrate/main.go -action=up
+
 migrate-up:
-	@echo "Running database migrations..."
-	@echo "User Service migrations:"
-	docker compose exec -T postgres-user psql -U postgres -d user -f /docker-entrypoint-initdb.d/001_create_users.up.sql || true
-	@echo "Order Service migrations:"
-	docker compose exec -T postgres-order psql -U postgres -d order -f /docker-entrypoint-initdb.d/001_create_orders.up.sql || true
-	@echo "Payment Service migrations:"
-	docker compose exec -T postgres-payment psql -U postgres -d payment -f /docker-entrypoint-initdb.d/001_create_payments.up.sql || true
+	@echo "Running all database migrations..."
+	cd services/user && go run cmd/migrate/main.go -action=up
+	cd services/order && go run cmd/migrate/main.go -action=up
+	cd services/payment && go run cmd/migrate/main.go -action=up
 
 migrate-down:
-	@echo "Rolling back database migrations..."
-	docker compose exec -T postgres-user psql -U postgres -d user -f /docker-entrypoint-initdb.d/001_create_users.down.sql || true
-	docker compose exec -T postgres-order psql -U postgres -d order -f /docker-entrypoint-initdb.d/001_create_orders.down.sql || true
-	docker compose exec -T postgres-payment psql -U postgres -d payment -f /docker-entrypoint-initdb.d/001_create_payments.down.sql || true
+	@echo "Rolling back one migration for all services..."
+	cd services/user && go run cmd/migrate/main.go -action=down
+	cd services/order && go run cmd/migrate/main.go -action=down
+	cd services/payment && go run cmd/migrate/main.go -action=down
+
+migrate-status:
+	@echo "Checking migration status..."
+	@echo "User Service:"
+	@cd services/user && go run cmd/migrate/main.go -action=version
+	@echo "Order Service:"
+	@cd services/order && go run cmd/migrate/main.go -action=version
+	@echo "Payment Service:"
+	@cd services/payment && go run cmd/migrate/main.go -action=version
+
+migrate-user:
+	@echo "User Service migrations:"
+	@echo "  Up:    make migrate-user-up"
+	@echo "  Down:  make migrate-user-down"
+	@echo "  Status: make migrate-user-status"
+
+migrate-user-up:
+	cd services/user && go run cmd/migrate/main.go -action=up
+
+migrate-user-down:
+	cd services/user && go run cmd/migrate/main.go -action=down
+
+migrate-user-status:
+	cd services/user && go run cmd/migrate/main.go -action=status
+
+migrate-order:
+	@echo "Order Service migrations:"
+	@echo "  Up:    make migrate-order-up"
+	@echo "  Down:  make migrate-order-down"
+	@echo "  Status: make migrate-order-status"
+
+migrate-order-up:
+	cd services/order && go run cmd/migrate/main.go -action=up
+
+migrate-order-down:
+	cd services/order && go run cmd/migrate/main.go -action=down
+
+migrate-order-status:
+	cd services/order && go run cmd/migrate/main.go -action=status
+
+migrate-payment:
+	@echo "Payment Service migrations:"
+	@echo "  Up:    make migrate-payment-up"
+	@echo "  Down:  make migrate-payment-down"
+	@echo "  Status: make migrate-payment-status"
+
+migrate-payment-up:
+	cd services/payment && go run cmd/migrate/main.go -action=up
+
+migrate-payment-down:
+	cd services/payment && go run cmd/migrate/main.go -action=down
+
+migrate-payment-status:
+	cd services/payment && go run cmd/migrate/main.go -action=status
 
 # Dependency management
 deps:

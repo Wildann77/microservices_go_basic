@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"net/http"
 	"os"
 	"os/signal"
@@ -16,6 +17,7 @@ import (
 	"github.com/microservices-go/shared/config"
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/middleware"
+	"github.com/microservices-go/shared/migrate"
 	"github.com/microservices-go/shared/rabbitmq"
 
 	"github.com/microservices-go/services/order/internal/order"
@@ -51,6 +53,15 @@ func main() {
 		log.Fatal("Failed to ping database: " + err.Error())
 	}
 	log.Info("Connected to database via GORM")
+
+	// Run database migrations (if enabled)
+	if shouldAutoMigrate() {
+		if err := runMigrations(sqlDB, log); err != nil {
+			log.Fatal("Failed to run migrations: " + err.Error())
+		}
+	} else {
+		log.Info("Auto-migrate disabled. Skipping migrations.")
+	}
 
 	// Connect to RabbitMQ
 	var rabbitClient *rabbitmq.Client
@@ -152,4 +163,13 @@ func getEnv(key, defaultValue string) string {
 		return value
 	}
 	return defaultValue
+}
+
+func shouldAutoMigrate() bool {
+	return getEnv("ORDER_AUTO_MIGRATE", "true") == "true"
+}
+
+func runMigrations(sqlDB *sql.DB, log *logger.Logger) error {
+	migrator := migrate.NewMigrator(sqlDB, log.WithField("component", "migrator"))
+	return migrator.Run("./migrations")
 }
