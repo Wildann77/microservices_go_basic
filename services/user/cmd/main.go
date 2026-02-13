@@ -20,6 +20,7 @@ import (
 
 	"github.com/microservices-go/services/user/internal/rabbit"
 	"github.com/microservices-go/services/user/internal/user"
+	"github.com/microservices-go/shared/database"
 )
 
 func main() {
@@ -51,6 +52,12 @@ func main() {
 		log.Fatal("Failed to ping database: " + err.Error())
 	}
 	log.Info("Connected to database via GORM")
+
+	// Run migrations
+	log.Info("Running database migrations...")
+	if err := database.RunMigrations(sqlDB, dbConfig.DBName, "migrations"); err != nil {
+		log.Fatal("Failed to run migrations: " + err.Error())
+	}
 
 	// Connect to RabbitMQ
 	rabbitClient, err := rabbitmq.NewClient(rabbitConfig.URL())
