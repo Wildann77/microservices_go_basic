@@ -57,6 +57,119 @@ make down
 make install-air    # Install Air for hot reload
 ```
 
+### Database Migrations
+
+This project uses **golang-migrate** for SQL-based database migrations with both auto-migration on service start and manual CLI tools.
+
+#### Auto-Migration (Default)
+Migrations run automatically when services start:
+```bash
+make run-order    # Migrations run before service starts
+make run-user
+make run-payment
+```
+
+**Environment Variables** (add to `.env`):
+```env
+# Enable/disable auto-migration (default: true)
+USER_AUTO_MIGRATE=true
+ORDER_AUTO_MIGRATE=true
+PAYMENT_AUTO_MIGRATE=true
+```
+
+#### Manual Migration Commands
+
+**Via Makefile** (recommended):
+```bash
+# Run all pending migrations for all services
+make migrate-up
+
+# Rollback one migration for all services
+make migrate-down
+
+# Check migration status for all services
+make migrate-status
+
+# Service-specific migrations
+make migrate-user-up
+make migrate-user-down
+make migrate-user-status
+
+make migrate-order-up
+make migrate-order-down
+make migrate-order-status
+
+make migrate-payment-up
+make migrate-payment-down
+make migrate-payment-status
+```
+
+**Via CLI directly**:
+```bash
+cd services/order
+
+# Run all pending migrations
+go run cmd/migrate/main.go -action=up
+
+# Rollback one migration
+go run cmd/migrate/main.go -action=down
+
+# Check current version
+go run cmd/migrate/main.go -action=version
+
+# Check detailed status
+go run cmd/migrate/main.go -action=status
+
+# Force specific version (use with caution!)
+go run cmd/migrate/main.go -action=force -force=1
+```
+
+#### Creating New Migrations
+
+**Naming convention**: `NNN_description.up.sql` and `NNN_description.down.sql`
+
+Create files in `services/<name>/migrations/`:
+```bash
+services/order/migrations/
+├── 001_create_orders.up.sql
+├── 001_create_orders.down.sql
+├── 002_add_indexes.up.sql
+└── 002_add_indexes.down.sql
+```
+
+**Example migration file** (`002_add_indexes.up.sql`):
+```sql
+-- Create new indexes
+CREATE INDEX IF NOT EXISTS idx_orders_new_field ON orders (new_field);
+
+-- Add new column
+ALTER TABLE orders ADD COLUMN IF NOT EXISTS new_field VARCHAR(255);
+```
+
+**Corresponding down file** (`002_add_indexes.down.sql`):
+```sql
+-- Remove indexes
+DROP INDEX IF EXISTS idx_orders_new_field;
+
+-- Remove column
+ALTER TABLE orders DROP COLUMN IF EXISTS new_field;
+```
+
+#### Migration Best Practices
+
+1. **Always create both `.up.sql` and `.down.sql` files**
+2. **Make migrations idempotent** using `IF EXISTS` / `IF NOT EXISTS`
+3. **Test down migrations** before committing
+4. **Never modify existing migration files** after they've been applied
+5. **One logical change per migration file**
+6. **Keep migrations small and focused**
+
+#### Migration Status Codes
+
+- **Version**: Current migration version number
+- **Dirty**: `true` if migration failed mid-way (requires manual fix)
+- **No Change**: Database is already up to date
+
 ## Code Style Guidelines
 
 ### Project Structure
