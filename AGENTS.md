@@ -303,3 +303,108 @@ replace github.com/microservices-go/shared => ../shared
 - Use `testing` package from standard library
 - Mock interfaces for unit tests
 - Table-driven tests preferred
+
+## Rate Limiting
+
+This project uses **Redis-based rate limiting** with Fixed Window algorithm across all services.
+
+### Architecture
+- **Gateway**: Global rate limit (1000 req/min per IP) - entry point protection
+- **Services**: Service-specific limits for granular control:
+  - **User Service**: 500 req/min
+  - **Order Service**: 200 req/min
+  - **Payment Service**: 100 req/min
+
+### Configuration
+
+Add to your `.env` file:
+```env
+# Redis Configuration (required for rate limiting)
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+REDIS_DB=0
+
+# Rate Limiting Configuration (requests per minute)
+GATEWAY_RATE_LIMIT_RPM=1000
+GATEWAY_RATE_LIMIT_WINDOW=60
+
+USER_RATE_LIMIT_RPM=500
+USER_RATE_LIMIT_WINDOW=60
+
+ORDER_RATE_LIMIT_RPM=200
+ORDER_RATE_LIMIT_WINDOW=60
+
+PAYMENT_RATE_LIMIT_RPM=100
+PAYMENT_RATE_LIMIT_WINDOW=60
+```
+
+### Docker Compose
+Redis is automatically started with `make infra` or `make up-d`:
+```yaml
+redis:
+  image: redis:7-alpine
+  ports:
+    - "6379:6379"
+```
+
+### Usage in Code
+
+The rate limiter is automatically initialized in each service's `main.go`:
+
+```go
+// Load Redis config
+redisConfig := config.LoadRedisConfig()
+
+// Connect to Redis
+redisClient, err := redis.NewClient(redisConfig)
+if err != nil {
+    log.Warn("Failed to connect to Redis: " + err.Error())
+    log.Warn("Rate limiting will be disabled")
+} else {
+    defer redisClient.Close()
+}
+
+// Load rate limit config
+rateLimitConfig := config.LoadRateLimitConfig("service-name")
+
+// Create rate limiter
+var rateLimiter *middleware.RateLimiter
+if redisClient != nil {
+    rateLimiter = middleware.NewRateLimiter(redisClient, rateLimitConfig, "service-name")
+}
+
+// Apply middleware
+if rateLimiter != nil {
+    r.Use(rateLimiter.Middleware)
+}
+```
+
+### Graceful Fallback
+If Redis is unavailable, services will:
+- Log a warning
+- Continue operating without rate limiting (fail-open strategy)
+- Not block legitimate traffic
+
+### Rate Limit Headers
+When rate limiting is active, responses include:
+- `X-RateLimit-Limit`: Maximum requests allowed
+- `X-RateLimit-Remaining`: Remaining requests in current window
+
+### Response on Rate Limit Exceeded
+```json
+{
+  "error": {
+    "code": "RATE_LIMIT_EXCEEDED",
+    "message": "Too many requests, please try again later"
+  }
+}
+```
+
+### Per-User Rate Limiting
+For authenticated endpoints, use per-user rate limiting:
+```go
+r.Use(rateLimiter.PerUserMiddleware)
+```
+
+This limits requests per user ID instead of per IP address.
