@@ -330,17 +330,18 @@ func (s *Service) CountByUserID(ctx context.Context, userID string) (int, error)
 }
 
 // HandleOrderCreated handles order created event
-func (s *Service) HandleOrderCreated(ctx context.Context, orderID, userID string, amount float64, currency string) error {
+func (s *Service) HandleOrderCreated(ctx context.Context, orderID, userID string, amount float64, currency, notes string) error {
 	log := logger.WithContext(ctx)
 	log.Infof("Handling order.created event for order: %s", orderID)
 
 	// Auto-create payment for order
 	req := &CreatePaymentRequest{
-		OrderID:  orderID,
-		UserID:   userID,
-		Amount:   amount,
-		Currency: currency,
-		Method:   PaymentMethodCard,
+		OrderID:     orderID,
+		UserID:      userID,
+		Amount:      amount,
+		Currency:    currency,
+		Method:      PaymentMethodCard,
+		Description: notes,
 	}
 
 	_, err := s.Create(ctx, req)

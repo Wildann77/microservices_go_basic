@@ -50,10 +50,11 @@ func (c *Consumer) handleOrderCreated(ctx context.Context, event *rabbitmq.Event
 		UserID      string  `json:"user_id"`
 		TotalAmount float64 `json:"total_amount"`
 		Currency    string  `json:"currency"`
+		Notes       string  `json:"notes"`
 	}
 	if err := json.Unmarshal(event.Payload, &payload); err != nil {
 		return err
 	}
 
-	return c.service.HandleOrderCreated(ctx, payload.OrderID, payload.UserID, payload.TotalAmount, payload.Currency)
+	return c.service.HandleOrderCreated(ctx, payload.OrderID, payload.UserID, payload.TotalAmount, payload.Currency, payload.Notes)
 }

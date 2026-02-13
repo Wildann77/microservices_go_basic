@@ -69,6 +69,7 @@ func (s *Service) Create(ctx context.Context, req *CreateOrderRequest) (*OrderRe
 			TotalAmount: order.TotalAmount,
 			Currency:    order.Currency,
 			Status:      string(order.Status),
+			Notes:       order.Notes,
 			CreatedAt:   order.CreatedAt,
 		}
 		if err := s.publisher.PublishEvent(ctx, "order.created", event); err != nil {

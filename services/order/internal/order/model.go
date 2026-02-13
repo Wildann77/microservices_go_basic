@@ -178,6 +178,7 @@ type OrderCreatedEvent struct {
 	TotalAmount float64   `json:"total_amount"`
 	Currency    string    `json:"currency"`
 	Status      string    `json:"status"`
+	Notes       string    `json:"notes"`
 	CreatedAt   time.Time `json:"created_at"`
 }
 
