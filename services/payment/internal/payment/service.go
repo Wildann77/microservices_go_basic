@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/microservices-go/shared/cache"
 	"github.com/microservices-go/shared/errors"
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/validator"
@@ -41,9 +42,11 @@ type RefundResult struct {
 // Service handles payment business logic
 type Service struct {
 	repo      *Repository
+	cache     *cache.Cache
 	validator *validator.Validator
 	provider  PaymentProvider
 	publisher EventPublisher
+	cacheTTL  time.Duration
 }
 
 // EventPublisher interface for publishing events
@@ -52,12 +55,14 @@ type EventPublisher interface {
 }
 
 // NewService creates a new payment service
-func NewService(repo *Repository, provider PaymentProvider, publisher EventPublisher) *Service {
+func NewService(repo *Repository, provider PaymentProvider, publisher EventPublisher, cacheClient *cache.Cache) *Service {
 	return &Service{
 		repo:      repo,
+		cache:     cacheClient,
 		validator: validator.New(),
 		provider:  provider,
 		publisher: publisher,
+		cacheTTL:  3 * time.Minute,
 	}
 }
 
@@ -114,28 +119,83 @@ func (s *Service) Create(ctx context.Context, req *CreatePaymentRequest) (*Payme
 		return nil, err
 	}
 
+	// Invalidate order payment cache
+	if s.cache != nil {
+		if err := s.cache.Delete(ctx, "payment:order:"+payment.OrderID); err != nil {
+			log.WithError(err).Warn("Failed to invalidate order payment cache")
+		}
+		if err := s.cache.DeletePattern(ctx, "payments:user:"+payment.UserID+":*"); err != nil {
+			log.WithError(err).Warn("Failed to invalidate user payments cache")
+		}
+		if err := s.cache.DeletePattern(ctx, "payments:list:*"); err != nil {
+			log.WithError(err).Warn("Failed to invalidate payments list cache")
+		}
+	}
+
 	return payment.ToResponse(), nil
 }
 
-// GetByID gets payment by ID
+// GetByID gets payment by ID with caching
 func (s *Service) GetByID(ctx context.Context, id string) (*PaymentResponse, error) {
+	cacheKey := "payment:id:" + id
+
+	// Try to get from cache
+	if s.cache != nil {
+		var cachedPayment PaymentResponse
+		if err := s.cache.Get(ctx, cacheKey, &cachedPayment); err == nil {
+			return &cachedPayment, nil
+		}
+	}
+
+	// Get from database
 	payment, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return payment.ToResponse(), nil
+
+	response := payment.ToResponse()
+
+	// Store in cache
+	if s.cache != nil {
+		if err := s.cache.Set(ctx, cacheKey, response, s.cacheTTL); err != nil {
+			logger.WithContext(ctx).WithError(err).Warn("Failed to cache payment")
+		}
+	}
+
+	return response, nil
 }
 
-// GetByOrderID gets payment by order ID
+// GetByOrderID gets payment by order ID with caching
 func (s *Service) GetByOrderID(ctx context.Context, orderID string) (*PaymentResponse, error) {
+	cacheKey := "payment:order:" + orderID
+
+	// Try to get from cache
+	if s.cache != nil {
+		var cachedPayment PaymentResponse
+		if err := s.cache.Get(ctx, cacheKey, &cachedPayment); err == nil {
+			return &cachedPayment, nil
+		}
+	}
+
+	// Get from database
 	payment, err := s.repo.GetByOrderID(ctx, orderID)
 	if err != nil {
 		return nil, err
 	}
-	return payment.ToResponse(), nil
+
+	response := payment.ToResponse()
+
+	// Store in cache
+	if s.cache != nil {
+		if err := s.cache.Set(ctx, cacheKey, response, s.cacheTTL); err != nil {
+			logger.WithContext(ctx).WithError(err).Warn("Failed to cache payment by order")
+		}
+	}
+
+	return response, nil
 }
 
-// GetByUserID gets payments by user ID
+// GetByUserID gets payments by user ID with caching
 func (s *Service) GetByUserID(ctx context.Context, userID string, limit, offset int) ([]*PaymentResponse, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 10
@@ -144,6 +204,17 @@ func (s *Service) GetByUserID(ctx context.Context, userID string, limit, offset 
 		offset = 0
 	}
 
+	cacheKey := "payments:user:" + userID + ":limit:" + string(rune(limit)) + ":offset:" + string(rune(offset))
+
+	// Try to get from cache
+	if s.cache != nil {
+		var cachedPayments []*PaymentResponse
+		if err := s.cache.Get(ctx, cacheKey, &cachedPayments); err == nil {
+			return cachedPayments, nil
+		}
+	}
+
+	// Get from database
 	payments, err := s.repo.GetByUserID(ctx, userID, limit, offset)
 	if err != nil {
 		return nil, err
@@ -153,6 +224,14 @@ func (s *Service) GetByUserID(ctx context.Context, userID string, limit, offset 
 	for i, payment := range payments {
 		responses[i] = payment.ToResponse()
 	}
+
+	// Store in cache
+	if s.cache != nil {
+		if err := s.cache.Set(ctx, cacheKey, responses, s.cacheTTL); err != nil {
+			logger.WithContext(ctx).WithError(err).Warn("Failed to cache user payments")
+		}
+	}
+
 	return responses, nil
 }
 
@@ -244,6 +323,19 @@ func (s *Service) completePayment(ctx context.Context, payment *Payment) error {
 		}
 	}
 
+	// Invalidate payment caches
+	if s.cache != nil {
+		if err := s.cache.Delete(ctx, "payment:id:"+payment.ID); err != nil {
+			log.WithError(err).Warn("Failed to invalidate payment cache")
+		}
+		if err := s.cache.Delete(ctx, "payment:order:"+payment.OrderID); err != nil {
+			log.WithError(err).Warn("Failed to invalidate order payment cache")
+		}
+		if err := s.cache.DeletePattern(ctx, "payments:user:"+payment.UserID+":*"); err != nil {
+			log.WithError(err).Warn("Failed to invalidate user payments cache")
+		}
+	}
+
 	log.Info("Payment completed successfully")
 	return nil
 }
@@ -314,6 +406,19 @@ func (s *Service) Refund(ctx context.Context, id string, req *RefundRequest) (*P
 	// Update payment status
 	if err := s.repo.UpdateStatus(ctx, payment.ID, PaymentStatusRefunded, req.Reason); err != nil {
 		return nil, err
+	}
+
+	// Invalidate payment caches
+	if s.cache != nil {
+		if err := s.cache.Delete(ctx, "payment:id:"+payment.ID); err != nil {
+			log.WithError(err).Warn("Failed to invalidate payment cache")
+		}
+		if err := s.cache.Delete(ctx, "payment:order:"+payment.OrderID); err != nil {
+			log.WithError(err).Warn("Failed to invalidate order payment cache")
+		}
+		if err := s.cache.DeletePattern(ctx, "payments:user:"+payment.UserID+":*"); err != nil {
+			log.WithError(err).Warn("Failed to invalidate user payments cache")
+		}
 	}
 
 	return s.GetByID(ctx, id)

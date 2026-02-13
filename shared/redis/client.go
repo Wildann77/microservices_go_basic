@@ -45,6 +45,11 @@ func (c *Client) Close() error {
 	return c.client.Close()
 }
 
+// GetClient returns the underlying redis client
+func (c *Client) GetClient() *redis.Client {
+	return c.client
+}
+
 // Increment increments the counter for a key and sets expiration if new
 func (c *Client) Increment(key string, window time.Duration) (int64, error) {
 	pipe := c.client.Pipeline()

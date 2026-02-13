@@ -14,6 +14,7 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
+	"github.com/microservices-go/shared/cache"
 	"github.com/microservices-go/shared/config"
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/middleware"
@@ -51,11 +52,14 @@ func main() {
 	// Load rate limit config
 	rateLimitConfig := config.LoadRateLimitConfig("order")
 
-	// Create rate limiter
+	// Create rate limiter and cache
 	var rateLimiter *middleware.RateLimiter
+	var cacheClient *cache.Cache
 	if redisClient != nil {
 		rateLimiter = middleware.NewRateLimiter(redisClient, rateLimitConfig, "order")
+		cacheClient = cache.NewCache(redisClient.GetClient(), "order")
 		log.Infof("Rate limiting enabled: %d req/min", rateLimitConfig.RequestsPerMinute)
+		log.Info("Caching enabled")
 	}
 
 	// Connect to database using GORM
@@ -112,7 +116,7 @@ func main() {
 	orderRepo := order.NewRepository(db)
 
 	// Initialize service
-	orderService := order.NewService(orderRepo, publisher)
+	orderService := order.NewService(orderRepo, publisher, cacheClient)
 
 	// Initialize consumer
 	if rabbitClient != nil {

@@ -2,7 +2,9 @@ package user
 
 import (
 	"context"
+	"time"
 
+	"github.com/microservices-go/shared/cache"
 	"github.com/microservices-go/shared/config"
 	"github.com/microservices-go/shared/errors"
 	"github.com/microservices-go/shared/logger"
@@ -14,9 +16,11 @@ import (
 // Service handles user business logic
 type Service struct {
 	repo      *Repository
+	cache     *cache.Cache
 	validator *validator.Validator
 	jwtConfig *config.JWTConfig
 	publisher EventPublisher
+	cacheTTL  time.Duration
 }
 
 // EventPublisher interface for publishing events
@@ -25,12 +29,14 @@ type EventPublisher interface {
 }
 
 // NewService creates a new user service
-func NewService(repo *Repository, jwtConfig *config.JWTConfig, publisher EventPublisher) *Service {
+func NewService(repo *Repository, jwtConfig *config.JWTConfig, publisher EventPublisher, cacheClient *cache.Cache) *Service {
 	return &Service{
 		repo:      repo,
+		cache:     cacheClient,
 		validator: validator.New(),
 		jwtConfig: jwtConfig,
 		publisher: publisher,
+		cacheTTL:  5 * time.Minute,
 	}
 }
 
@@ -71,6 +77,13 @@ func (s *Service) Create(ctx context.Context, req *CreateUserRequest) (*LoginRes
 		return nil, err
 	}
 
+	// Invalidate list caches
+	if s.cache != nil {
+		if err := s.cache.DeletePattern(ctx, "users:list:*"); err != nil {
+			log.WithError(err).Warn("Failed to invalidate users list cache")
+		}
+	}
+
 	// Publish event
 	if s.publisher != nil {
 		event := &UserCreatedEvent{
@@ -98,25 +111,67 @@ func (s *Service) Create(ctx context.Context, req *CreateUserRequest) (*LoginRes
 	}, nil
 }
 
-// GetByID gets user by ID
+// GetByID gets user by ID with caching
 func (s *Service) GetByID(ctx context.Context, id string) (*UserResponse, error) {
+	cacheKey := "user:id:" + id
+
+	// Try to get from cache
+	if s.cache != nil {
+		var cachedUser UserResponse
+		if err := s.cache.Get(ctx, cacheKey, &cachedUser); err == nil {
+			return &cachedUser, nil
+		}
+	}
+
+	// Get from database
 	user, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
-	return user.ToResponse(), nil
+
+	response := user.ToResponse()
+
+	// Store in cache
+	if s.cache != nil {
+		if err := s.cache.Set(ctx, cacheKey, response, s.cacheTTL); err != nil {
+			logger.WithContext(ctx).WithError(err).Warn("Failed to cache user")
+		}
+	}
+
+	return response, nil
 }
 
-// GetByEmail gets user by email
+// GetByEmail gets user by email with caching
 func (s *Service) GetByEmail(ctx context.Context, email string) (*UserResponse, error) {
+	cacheKey := "user:email:" + email
+
+	// Try to get from cache
+	if s.cache != nil {
+		var cachedUser UserResponse
+		if err := s.cache.Get(ctx, cacheKey, &cachedUser); err == nil {
+			return &cachedUser, nil
+		}
+	}
+
+	// Get from database
 	user, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
 		return nil, err
 	}
-	return user.ToResponse(), nil
+
+	response := user.ToResponse()
+
+	// Store in cache
+	if s.cache != nil {
+		if err := s.cache.Set(ctx, cacheKey, response, s.cacheTTL); err != nil {
+			logger.WithContext(ctx).WithError(err).Warn("Failed to cache user by email")
+		}
+	}
+
+	return response, nil
 }
 
-// List lists users with pagination
+// List lists users with pagination and caching
 func (s *Service) List(ctx context.Context, limit, offset int) ([]*UserResponse, error) {
 	if limit <= 0 || limit > 100 {
 		limit = 10
@@ -125,6 +180,17 @@ func (s *Service) List(ctx context.Context, limit, offset int) ([]*UserResponse,
 		offset = 0
 	}
 
+	cacheKey := "users:list:limit:" + string(rune(limit)) + ":offset:" + string(rune(offset))
+
+	// Try to get from cache
+	if s.cache != nil {
+		var cachedUsers []*UserResponse
+		if err := s.cache.Get(ctx, cacheKey, &cachedUsers); err == nil {
+			return cachedUsers, nil
+		}
+	}
+
+	// Get from database
 	users, err := s.repo.List(ctx, limit, offset)
 	if err != nil {
 		return nil, err
@@ -134,6 +200,14 @@ func (s *Service) List(ctx context.Context, limit, offset int) ([]*UserResponse,
 	for i, user := range users {
 		responses[i] = user.ToResponse()
 	}
+
+	// Store in cache
+	if s.cache != nil {
+		if err := s.cache.Set(ctx, cacheKey, responses, s.cacheTTL); err != nil {
+			logger.WithContext(ctx).WithError(err).Warn("Failed to cache users list")
+		}
+	}
+
 	return responses, nil
 }
 
@@ -165,12 +239,50 @@ func (s *Service) Update(ctx context.Context, id string, req *UpdateUserRequest)
 		return nil, err
 	}
 
+	// Invalidate caches
+	if s.cache != nil {
+		log := logger.WithContext(ctx)
+		if err := s.cache.Delete(ctx, "user:id:"+id); err != nil {
+			log.WithError(err).Warn("Failed to invalidate user cache")
+		}
+		if err := s.cache.Delete(ctx, "user:email:"+user.Email); err != nil {
+			log.WithError(err).Warn("Failed to invalidate user email cache")
+		}
+		if err := s.cache.DeletePattern(ctx, "users:list:*"); err != nil {
+			log.WithError(err).Warn("Failed to invalidate users list cache")
+		}
+	}
+
 	return user.ToResponse(), nil
 }
 
-// Delete deletes user
+// Delete deletes user and invalidates cache
 func (s *Service) Delete(ctx context.Context, id string) error {
-	return s.repo.Delete(ctx, id)
+	// Get user email for cache invalidation
+	user, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	// Invalidate caches
+	if s.cache != nil {
+		log := logger.WithContext(ctx)
+		if err := s.cache.Delete(ctx, "user:id:"+id); err != nil {
+			log.WithError(err).Warn("Failed to invalidate user cache")
+		}
+		if err := s.cache.Delete(ctx, "user:email:"+user.Email); err != nil {
+			log.WithError(err).Warn("Failed to invalidate user email cache")
+		}
+		if err := s.cache.DeletePattern(ctx, "users:list:*"); err != nil {
+			log.WithError(err).Warn("Failed to invalidate users list cache")
+		}
+	}
+
+	return nil
 }
 
 // Login authenticates user and returns token
