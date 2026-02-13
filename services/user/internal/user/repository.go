@@ -176,3 +176,21 @@ func (r *Repository) Count(ctx context.Context) (int, error) {
 	}
 	return int(count), nil
 }
+
+// GetByIDs gets multiple users by IDs
+func (r *Repository) GetByIDs(ctx context.Context, ids []string) ([]*User, error) {
+	log := logger.WithContext(ctx)
+
+	if len(ids) == 0 {
+		return []*User{}, nil
+	}
+
+	var users []*User
+	err := r.db.WithContext(ctx).Where("id IN ?", ids).Find(&users).Error
+	if err != nil {
+		log.WithError(err).Error("Failed to get users by IDs")
+		return nil, errors.Wrap(err, errors.ErrDatabaseError, "Failed to get users by IDs")
+	}
+
+	return users, nil
+}

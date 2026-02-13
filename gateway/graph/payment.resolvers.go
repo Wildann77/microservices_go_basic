@@ -36,25 +36,29 @@ func (r *mutationResolver) RefundPayment(ctx context.Context, id string, amount 
 // Order is the resolver for the order field.
 func (r *paymentResolver) Order(ctx context.Context, obj *payment.Payment) (*order.Order, error) {
 	loaders := GetLoaders(ctx)
-	return loaders.OrderLoader.LoadByID(ctx, obj.OrderID)
+	thunk := loaders.OrderLoader.Load(ctx, obj.OrderID)
+	return thunk()
 }
 
 // User is the resolver for the user field.
 func (r *paymentResolver) User(ctx context.Context, obj *payment.Payment) (*user.User, error) {
 	loaders := GetLoaders(ctx)
-	return loaders.UserLoader.Load(ctx, obj.UserID)
+	thunk := loaders.UserLoader.Load(ctx, obj.UserID)
+	return thunk()
 }
 
 // Payment is the resolver for the payment field.
 func (r *queryResolver) Payment(ctx context.Context, id string) (*payment.Payment, error) {
 	loaders := GetLoaders(ctx)
-	return loaders.PaymentLoader.LoadByID(ctx, id)
+	thunk := loaders.PaymentLoader.Load(ctx, id)
+	return thunk()
 }
 
 // PaymentByOrder is the resolver for the paymentByOrder field.
 func (r *queryResolver) PaymentByOrder(ctx context.Context, orderID string) (*payment.Payment, error) {
 	loaders := GetLoaders(ctx)
-	return loaders.PaymentLoader.LoadByOrder(ctx, orderID)
+	thunk := loaders.PaymentByOrderLoader.Load(ctx, orderID)
+	return thunk()
 }
 
 // Payments is the resolver for the payments field.

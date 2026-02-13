@@ -31,7 +31,8 @@ func (r *queryResolver) Me(ctx context.Context) (*user.User, error) {
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id string) (*user.User, error) {
 	loaders := GetLoaders(ctx)
-	return loaders.UserLoader.Load(ctx, id)
+	thunk := loaders.UserLoader.Load(ctx, id)
+	return thunk()
 }
 
 // Users is the resolver for the users field.
@@ -58,8 +59,8 @@ func (r *userResolver) Orders(ctx context.Context, obj *user.User, limit *int, o
 		o = *offset
 	}
 
-	loaders := GetLoaders(ctx)
-	return loaders.OrderLoader.LoadByUser(ctx, obj.ID, l, o)
+	// Use OrderClient directly for list queries (DataLoader is for single entity lookups)
+	return r.OrderClient.GetOrdersByUser(ctx, obj.ID, l, o)
 }
 
 // User returns generated.UserResolver implementation.

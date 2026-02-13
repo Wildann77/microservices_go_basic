@@ -151,3 +151,21 @@ func (r *Repository) CountByUserID(ctx context.Context, userID string) (int, err
 	}
 	return int(count), nil
 }
+
+// GetByIDs gets multiple orders by IDs
+func (r *Repository) GetByIDs(ctx context.Context, ids []string) ([]*Order, error) {
+	log := logger.WithContext(ctx)
+
+	if len(ids) == 0 {
+		return []*Order{}, nil
+	}
+
+	var orders []*Order
+	err := r.db.WithContext(ctx).Preload("Items").Where("id IN ?", ids).Find(&orders).Error
+	if err != nil {
+		log.WithError(err).Error("Failed to get orders by IDs")
+		return nil, errors.Wrap(err, errors.ErrDatabaseError, "Failed to get orders by IDs")
+	}
+
+	return orders, nil
+}

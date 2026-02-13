@@ -31,19 +31,22 @@ func (r *mutationResolver) UpdateOrderStatus(ctx context.Context, id string, sta
 // User is the resolver for the user field.
 func (r *orderResolver) User(ctx context.Context, obj *order.Order) (*user.User, error) {
 	loaders := GetLoaders(ctx)
-	return loaders.UserLoader.Load(ctx, obj.UserID)
+	thunk := loaders.UserLoader.Load(ctx, obj.UserID)
+	return thunk()
 }
 
 // Payment is the resolver for the payment field.
 func (r *orderResolver) Payment(ctx context.Context, obj *order.Order) (*payment.Payment, error) {
 	loaders := GetLoaders(ctx)
-	return loaders.PaymentLoader.LoadByOrder(ctx, obj.ID)
+	thunk := loaders.PaymentByOrderLoader.Load(ctx, obj.ID)
+	return thunk()
 }
 
 // Order is the resolver for the order field.
 func (r *queryResolver) Order(ctx context.Context, id string) (*order.Order, error) {
 	loaders := GetLoaders(ctx)
-	return loaders.OrderLoader.LoadByID(ctx, id)
+	thunk := loaders.OrderLoader.Load(ctx, id)
+	return thunk()
 }
 
 // Orders is the resolver for the orders field.

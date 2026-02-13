@@ -452,3 +452,63 @@ func (s *Service) HandleOrderCreated(ctx context.Context, orderID, userID string
 	_, err := s.Create(ctx, req)
 	return err
 }
+
+// GetByIDs gets multiple payments by IDs with caching
+func (s *Service) GetByIDs(ctx context.Context, ids []string) ([]*PaymentResponse, error) {
+	if len(ids) == 0 {
+		return []*PaymentResponse{}, nil
+	}
+
+	// Get from database
+	payments, err := s.repo.GetByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*PaymentResponse, len(payments))
+	for i, payment := range payments {
+		responses[i] = payment.ToResponse()
+
+		// Cache individual payments
+		if s.cache != nil {
+			cacheKey := "payment:id:" + payment.ID
+			if err := s.cache.Set(ctx, cacheKey, responses[i], s.cacheTTL); err != nil {
+				logger.WithContext(ctx).WithError(err).Warn("Failed to cache payment")
+			}
+		}
+	}
+
+	return responses, nil
+}
+
+// GetByOrderIDs gets multiple payments by order IDs with caching
+func (s *Service) GetByOrderIDs(ctx context.Context, orderIDs []string) ([]*PaymentResponse, error) {
+	if len(orderIDs) == 0 {
+		return []*PaymentResponse{}, nil
+	}
+
+	// Get from database
+	payments, err := s.repo.GetByOrderIDs(ctx, orderIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*PaymentResponse, len(payments))
+	for i, payment := range payments {
+		responses[i] = payment.ToResponse()
+
+		// Cache individual payments
+		if s.cache != nil {
+			cacheKey := "payment:id:" + payment.ID
+			orderCacheKey := "payment:order:" + payment.OrderID
+			if err := s.cache.Set(ctx, cacheKey, responses[i], s.cacheTTL); err != nil {
+				logger.WithContext(ctx).WithError(err).Warn("Failed to cache payment")
+			}
+			if err := s.cache.Set(ctx, orderCacheKey, responses[i], s.cacheTTL); err != nil {
+				logger.WithContext(ctx).WithError(err).Warn("Failed to cache payment by order")
+			}
+		}
+	}
+
+	return responses, nil
+}

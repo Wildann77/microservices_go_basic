@@ -33,6 +33,7 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware *middleware.AuthMi
 			r.Use(authMiddleware.Authenticate)
 
 			r.Get("/", h.List)
+			r.Post("/batch", h.GetBatch)
 			r.Get("/{id}", h.GetByID)
 			r.Put("/{id}", h.Update)
 			r.Delete("/{id}", h.Delete)
@@ -213,6 +214,39 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+// GetBatch gets multiple users by IDs
+func (h *Handler) GetBatch(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var req struct {
+		IDs []string `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.New(errors.ErrInvalidInput, "Invalid request body").WriteHTTPResponse(w)
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		errors.New(errors.ErrInvalidInput, "IDs array is required").WriteHTTPResponse(w)
+		return
+	}
+
+	users, err := h.service.GetByIDs(ctx, req.IDs)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Failed to get users").WriteHTTPResponse(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": users,
+	})
 }
 
 // HealthCheck handles health check

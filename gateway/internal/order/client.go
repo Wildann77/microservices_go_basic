@@ -152,3 +152,22 @@ func (c *Client) ListMyOrders(ctx context.Context, limit, offset int) (*OrderCon
 		},
 	}, nil
 }
+
+// GetOrdersByUser gets orders for a specific user (used by DataLoader)
+func (c *Client) GetOrdersByUser(ctx context.Context, userID string, limit, offset int) ([]*Order, error) {
+	url := fmt.Sprintf("%s/api/v1/orders/user/%s?limit=%d&offset=%d", c.url, userID, limit, offset)
+	resp, err := c.MakeRequest(ctx, "GET", url, nil, client.GetAuthHeader(ctx))
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var result struct {
+		Data []*Order `json:"data"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, err
+	}
+
+	return result.Data, nil
+}

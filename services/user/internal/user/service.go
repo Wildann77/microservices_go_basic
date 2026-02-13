@@ -327,3 +327,31 @@ func (s *Service) Login(ctx context.Context, req *LoginRequest) (*LoginResponse,
 func (s *Service) Count(ctx context.Context) (int, error) {
 	return s.repo.Count(ctx)
 }
+
+// GetByIDs gets multiple users by IDs with caching
+func (s *Service) GetByIDs(ctx context.Context, ids []string) ([]*UserResponse, error) {
+	if len(ids) == 0 {
+		return []*UserResponse{}, nil
+	}
+
+	// Get from database
+	users, err := s.repo.GetByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*UserResponse, len(users))
+	for i, user := range users {
+		responses[i] = user.ToResponse()
+
+		// Cache individual users
+		if s.cache != nil {
+			cacheKey := "user:id:" + user.ID
+			if err := s.cache.Set(ctx, cacheKey, responses[i], s.cacheTTL); err != nil {
+				logger.WithContext(ctx).WithError(err).Warn("Failed to cache user")
+			}
+		}
+	}
+
+	return responses, nil
+}

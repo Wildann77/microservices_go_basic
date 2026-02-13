@@ -201,3 +201,39 @@ func (r *Repository) CountByUserID(ctx context.Context, userID string) (int, err
 	}
 	return int(count), nil
 }
+
+// GetByIDs gets multiple payments by IDs
+func (r *Repository) GetByIDs(ctx context.Context, ids []string) ([]*Payment, error) {
+	log := logger.WithContext(ctx)
+
+	if len(ids) == 0 {
+		return []*Payment{}, nil
+	}
+
+	var payments []*Payment
+	err := r.db.WithContext(ctx).Where("id IN ?", ids).Find(&payments).Error
+	if err != nil {
+		log.WithError(err).Error("Failed to get payments by IDs")
+		return nil, errors.Wrap(err, errors.ErrDatabaseError, "Failed to get payments by IDs")
+	}
+
+	return payments, nil
+}
+
+// GetByOrderIDs gets multiple payments by order IDs
+func (r *Repository) GetByOrderIDs(ctx context.Context, orderIDs []string) ([]*Payment, error) {
+	log := logger.WithContext(ctx)
+
+	if len(orderIDs) == 0 {
+		return []*Payment{}, nil
+	}
+
+	var payments []*Payment
+	err := r.db.WithContext(ctx).Where("order_id IN ?", orderIDs).Find(&payments).Error
+	if err != nil {
+		log.WithError(err).Error("Failed to get payments by order IDs")
+		return nil, errors.Wrap(err, errors.ErrDatabaseError, "Failed to get payments by order IDs")
+	}
+
+	return payments, nil
+}

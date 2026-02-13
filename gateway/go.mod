@@ -6,6 +6,7 @@ require (
 	github.com/99designs/gqlgen v0.17.86
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/golang-jwt/jwt/v5 v5.2.0
+	github.com/graph-gophers/dataloader/v7 v7.1.3
 	github.com/microservices-go/shared v0.0.0
 	github.com/vektah/gqlparser/v2 v2.5.31
 )

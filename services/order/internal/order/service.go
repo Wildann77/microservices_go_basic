@@ -278,3 +278,31 @@ func (s *Service) HandlePaymentFailed(ctx context.Context, orderID string) error
 	})
 	return err
 }
+
+// GetByIDs gets multiple orders by IDs with caching
+func (s *Service) GetByIDs(ctx context.Context, ids []string) ([]*OrderResponse, error) {
+	if len(ids) == 0 {
+		return []*OrderResponse{}, nil
+	}
+
+	// Get from database
+	orders, err := s.repo.GetByIDs(ctx, ids)
+	if err != nil {
+		return nil, err
+	}
+
+	responses := make([]*OrderResponse, len(orders))
+	for i, order := range orders {
+		responses[i] = order.ToResponse()
+
+		// Cache individual orders
+		if s.cache != nil {
+			cacheKey := "order:id:" + order.ID
+			if err := s.cache.Set(ctx, cacheKey, responses[i], s.cacheTTL); err != nil {
+				logger.WithContext(ctx).WithError(err).Warn("Failed to cache order")
+			}
+		}
+	}
+
+	return responses, nil
+}

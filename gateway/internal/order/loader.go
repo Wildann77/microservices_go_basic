@@ -1,83 +1,87 @@
 package order
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/graph-gophers/dataloader/v7"
 )
 
-// Loader batches order requests
-type Loader struct {
-	OrderServiceURL string
-	Client          *http.Client
-}
+// BatchLoadOrders returns a batch function for loading orders
+func BatchLoadOrders(orderServiceURL string) dataloader.BatchFunc[string, *Order] {
+	return func(ctx context.Context, keys []string) []*dataloader.Result[*Order] {
+		results := make([]*dataloader.Result[*Order], len(keys))
 
-// NewLoader creates a new order loader
-func NewLoader(orderServiceURL string) *Loader {
-	return &Loader{
-		OrderServiceURL: orderServiceURL,
-		Client:          &http.Client{Timeout: 5 * time.Second},
-	}
-}
+		if len(keys) == 0 {
+			return results
+		}
 
-// LoadByID loads an order by ID
-func (l *Loader) LoadByID(ctx context.Context, orderID string) (*Order, error) {
-	url := fmt.Sprintf("%s/api/v1/orders/%s", l.OrderServiceURL, orderID)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
+		// Prepare request body
+		reqBody, _ := json.Marshal(map[string][]string{"ids": keys})
 
-	if auth, ok := ctx.Value("Authorization").(string); ok {
-		req.Header.Set("Authorization", auth)
-	}
+		url := fmt.Sprintf("%s/api/v1/orders/batch", orderServiceURL)
+		req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBody))
+		if err != nil {
+			for i := range results {
+				results[i] = &dataloader.Result[*Order]{Error: err}
+			}
+			return results
+		}
 
-	resp, err := l.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+		req.Header.Set("Content-Type", "application/json")
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to load order: %d", resp.StatusCode)
-	}
+		// Add auth header if present in ctx
+		if auth, ok := ctx.Value("Authorization").(string); ok {
+			req.Header.Set("Authorization", auth)
+		}
 
-	var result struct {
-		Data *Order `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
+		client := &http.Client{Timeout: 5 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			for i := range results {
+				results[i] = &dataloader.Result[*Order]{Error: err}
+			}
+			return results
+		}
+		defer resp.Body.Close()
 
-	return result.Data, nil
-}
+		if resp.StatusCode != http.StatusOK {
+			err := fmt.Errorf("failed to load orders: %d", resp.StatusCode)
+			for i := range results {
+				results[i] = &dataloader.Result[*Order]{Error: err}
+			}
+			return results
+		}
 
-// LoadByUser loads orders for a specific user
-func (l *Loader) LoadByUser(ctx context.Context, userID string, limit, offset int) ([]*Order, error) {
-	url := fmt.Sprintf("%s/api/v1/orders/user/%s?limit=%d&offset=%d", l.OrderServiceURL, userID, limit, offset)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
+		var result struct {
+			Data []*Order `json:"data"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			for i := range results {
+				results[i] = &dataloader.Result[*Order]{Error: err}
+			}
+			return results
+		}
 
-	if auth, ok := ctx.Value("Authorization").(string); ok {
-		req.Header.Set("Authorization", auth)
-	}
+		// Create map for O(1) lookup
+		orderMap := make(map[string]*Order)
+		for _, order := range result.Data {
+			orderMap[order.ID] = order
+		}
 
-	resp, err := l.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+		// Map results to keys (maintain order)
+		for i, key := range keys {
+			if order, ok := orderMap[key]; ok {
+				results[i] = &dataloader.Result[*Order]{Data: order}
+			} else {
+				results[i] = &dataloader.Result[*Order]{Error: fmt.Errorf("order not found: %s", key)}
+			}
+		}
 
-	var result struct {
-		Data []*Order `json:"data"`
+		return results
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return result.Data, nil
 }

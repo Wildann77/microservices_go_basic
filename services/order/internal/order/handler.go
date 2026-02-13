@@ -30,7 +30,9 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware *middleware.AuthMi
 
 			r.Post("/", h.Create)
 			r.Get("/", h.List)
+			r.Post("/batch", h.GetBatch)
 			r.Get("/my-orders", h.GetMyOrders)
+			r.Get("/user/{userId}", h.GetByUserID)
 			r.Get("/{id}", h.GetByID)
 			r.Patch("/{id}/status", h.UpdateStatus)
 		})
@@ -175,6 +177,63 @@ func (h *Handler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"data": order,
+	})
+}
+
+// GetBatch gets multiple orders by IDs
+func (h *Handler) GetBatch(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var req struct {
+		IDs []string `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.New(errors.ErrInvalidInput, "Invalid request body").WriteHTTPResponse(w)
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		errors.New(errors.ErrInvalidInput, "IDs array is required").WriteHTTPResponse(w)
+		return
+	}
+
+	orders, err := h.service.GetByIDs(ctx, req.IDs)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Failed to get orders").WriteHTTPResponse(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": orders,
+	})
+}
+
+// GetByUserID gets orders for a specific user
+func (h *Handler) GetByUserID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+	userID := chi.URLParam(r, "userId")
+
+	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
+	offset, _ := strconv.Atoi(r.URL.Query().Get("offset"))
+
+	orders, err := h.service.GetByUserID(ctx, userID, limit, offset)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Failed to get orders").WriteHTTPResponse(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": orders,
 	})
 }
 

@@ -30,6 +30,8 @@ func (h *Handler) RegisterRoutes(r chi.Router, authMiddleware *middleware.AuthMi
 
 			r.Post("/", h.Create)
 			r.Get("/", h.List)
+			r.Post("/batch", h.GetBatch)
+			r.Post("/batch-by-order", h.GetBatchByOrderID)
 			r.Get("/my-payments", h.GetMyPayments)
 			r.Get("/{id}", h.GetByID)
 			r.Get("/order/{orderId}", h.GetByOrderID)
@@ -225,6 +227,72 @@ func (h *Handler) Refund(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]interface{}{
 		"data": payment,
+	})
+}
+
+// GetBatch gets multiple payments by IDs
+func (h *Handler) GetBatch(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var req struct {
+		IDs []string `json:"ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.New(errors.ErrInvalidInput, "Invalid request body").WriteHTTPResponse(w)
+		return
+	}
+
+	if len(req.IDs) == 0 {
+		errors.New(errors.ErrInvalidInput, "IDs array is required").WriteHTTPResponse(w)
+		return
+	}
+
+	payments, err := h.service.GetByIDs(ctx, req.IDs)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Failed to get payments").WriteHTTPResponse(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": payments,
+	})
+}
+
+// GetBatchByOrderID gets multiple payments by order IDs
+func (h *Handler) GetBatchByOrderID(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
+
+	var req struct {
+		OrderIDs []string `json:"order_ids"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		errors.New(errors.ErrInvalidInput, "Invalid request body").WriteHTTPResponse(w)
+		return
+	}
+
+	if len(req.OrderIDs) == 0 {
+		errors.New(errors.ErrInvalidInput, "OrderIDs array is required").WriteHTTPResponse(w)
+		return
+	}
+
+	payments, err := h.service.GetByOrderIDs(ctx, req.OrderIDs)
+	if err != nil {
+		if appErr, ok := err.(*errors.AppError); ok {
+			appErr.WriteHTTPResponse(w)
+			return
+		}
+		errors.New(errors.ErrInternalServer, "Failed to get payments").WriteHTTPResponse(w)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"data": payments,
 	})
 }
 

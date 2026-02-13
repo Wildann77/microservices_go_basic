@@ -1,91 +1,163 @@
 package payment
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/graph-gophers/dataloader/v7"
 )
 
-// Loader batches payment requests
-type Loader struct {
-	PaymentServiceURL string
-	Client            *http.Client
-}
+// BatchLoadPayments returns a batch function for loading payments by ID
+func BatchLoadPayments(paymentServiceURL string) dataloader.BatchFunc[string, *Payment] {
+	return func(ctx context.Context, keys []string) []*dataloader.Result[*Payment] {
+		results := make([]*dataloader.Result[*Payment], len(keys))
 
-// NewLoader creates a new payment loader
-func NewLoader(paymentServiceURL string) *Loader {
-	return &Loader{
-		PaymentServiceURL: paymentServiceURL,
-		Client:            &http.Client{Timeout: 5 * time.Second},
+		if len(keys) == 0 {
+			return results
+		}
+
+		// Prepare request body
+		reqBody, _ := json.Marshal(map[string][]string{"ids": keys})
+
+		url := fmt.Sprintf("%s/api/v1/payments/batch", paymentServiceURL)
+		req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBody))
+		if err != nil {
+			for i := range results {
+				results[i] = &dataloader.Result[*Payment]{Error: err}
+			}
+			return results
+		}
+
+		req.Header.Set("Content-Type", "application/json")
+
+		// Add auth header if present in ctx
+		if auth, ok := ctx.Value("Authorization").(string); ok {
+			req.Header.Set("Authorization", auth)
+		}
+
+		client := &http.Client{Timeout: 5 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			for i := range results {
+				results[i] = &dataloader.Result[*Payment]{Error: err}
+			}
+			return results
+		}
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			err := fmt.Errorf("failed to load payments: %d", resp.StatusCode)
+			for i := range results {
+				results[i] = &dataloader.Result[*Payment]{Error: err}
+			}
+			return results
+		}
+
+		var result struct {
+			Data []*Payment `json:"data"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			for i := range results {
+				results[i] = &dataloader.Result[*Payment]{Error: err}
+			}
+			return results
+		}
+
+		// Create map for O(1) lookup
+		paymentMap := make(map[string]*Payment)
+		for _, payment := range result.Data {
+			paymentMap[payment.ID] = payment
+		}
+
+		// Map results to keys (maintain order)
+		for i, key := range keys {
+			if payment, ok := paymentMap[key]; ok {
+				results[i] = &dataloader.Result[*Payment]{Data: payment}
+			} else {
+				results[i] = &dataloader.Result[*Payment]{Error: fmt.Errorf("payment not found: %s", key)}
+			}
+		}
+
+		return results
 	}
 }
 
-// LoadByID loads a payment by ID
-func (l *Loader) LoadByID(ctx context.Context, paymentID string) (*Payment, error) {
-	url := fmt.Sprintf("%s/api/v1/payments/%s", l.PaymentServiceURL, paymentID)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
+// BatchLoadPaymentsByOrder returns a batch function for loading payments by order ID
+func BatchLoadPaymentsByOrder(paymentServiceURL string) dataloader.BatchFunc[string, *Payment] {
+	return func(ctx context.Context, keys []string) []*dataloader.Result[*Payment] {
+		results := make([]*dataloader.Result[*Payment], len(keys))
 
-	if auth, ok := ctx.Value("Authorization").(string); ok {
-		req.Header.Set("Authorization", auth)
-	}
+		if len(keys) == 0 {
+			return results
+		}
 
-	resp, err := l.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+		// Prepare request body
+		reqBody, _ := json.Marshal(map[string][]string{"order_ids": keys})
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to load payment: %d", resp.StatusCode)
-	}
+		url := fmt.Sprintf("%s/api/v1/payments/batch-by-order", paymentServiceURL)
+		req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewBuffer(reqBody))
+		if err != nil {
+			for i := range results {
+				results[i] = &dataloader.Result[*Payment]{Error: err}
+			}
+			return results
+		}
 
-	var result struct {
-		Data *Payment `json:"data"`
-	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
+		req.Header.Set("Content-Type", "application/json")
 
-	return result.Data, nil
-}
+		// Add auth header if present in ctx
+		if auth, ok := ctx.Value("Authorization").(string); ok {
+			req.Header.Set("Authorization", auth)
+		}
 
-// LoadByOrder loads a payment for a specific order
-func (l *Loader) LoadByOrder(ctx context.Context, orderID string) (*Payment, error) {
-	url := fmt.Sprintf("%s/api/v1/payments/order/%s", l.PaymentServiceURL, orderID)
-	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
+		client := &http.Client{Timeout: 5 * time.Second}
+		resp, err := client.Do(req)
+		if err != nil {
+			for i := range results {
+				results[i] = &dataloader.Result[*Payment]{Error: err}
+			}
+			return results
+		}
+		defer resp.Body.Close()
 
-	if auth, ok := ctx.Value("Authorization").(string); ok {
-		req.Header.Set("Authorization", auth)
-	}
+		if resp.StatusCode != http.StatusOK {
+			err := fmt.Errorf("failed to load payments by order: %d", resp.StatusCode)
+			for i := range results {
+				results[i] = &dataloader.Result[*Payment]{Error: err}
+			}
+			return results
+		}
 
-	resp, err := l.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
+		var result struct {
+			Data []*Payment `json:"data"`
+		}
+		if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+			for i := range results {
+				results[i] = &dataloader.Result[*Payment]{Error: err}
+			}
+			return results
+		}
 
-	if resp.StatusCode == http.StatusNotFound {
-		return nil, nil
-	}
+		// Create map for O(1) lookup (by order ID)
+		paymentMap := make(map[string]*Payment)
+		for _, payment := range result.Data {
+			paymentMap[payment.OrderID] = payment
+		}
 
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("failed to load payment by order: %d", resp.StatusCode)
-	}
+		// Map results to keys (maintain order)
+		for i, key := range keys {
+			if payment, ok := paymentMap[key]; ok {
+				results[i] = &dataloader.Result[*Payment]{Data: payment}
+			} else {
+				// Payment might not exist for order
+				results[i] = &dataloader.Result[*Payment]{Data: nil}
+			}
+		}
 
-	var result struct {
-		Data *Payment `json:"data"`
+		return results
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return result.Data, nil
 }
