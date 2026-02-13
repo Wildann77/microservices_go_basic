@@ -19,6 +19,7 @@ import (
 	"github.com/microservices-go/shared/middleware"
 	"github.com/microservices-go/shared/migrate"
 	"github.com/microservices-go/shared/rabbitmq"
+	"github.com/microservices-go/shared/redis"
 
 	"github.com/microservices-go/services/order/internal/order"
 	"github.com/microservices-go/services/order/internal/rabbit"
@@ -34,6 +35,28 @@ func main() {
 	serverConfig := config.LoadServerConfig("order")
 	jwtConfig := config.LoadJWTConfig()
 	rabbitConfig := config.LoadRabbitMQConfig()
+	redisConfig := config.LoadRedisConfig()
+
+	// Connect to Redis
+	redisClient, err := redis.NewClient(redisConfig)
+	if err != nil {
+		log.Warn("Failed to connect to Redis: " + err.Error())
+		log.Warn("Rate limiting will be disabled")
+		redisClient = nil
+	} else {
+		defer redisClient.Close()
+		log.Info("Connected to Redis")
+	}
+
+	// Load rate limit config
+	rateLimitConfig := config.LoadRateLimitConfig("order")
+
+	// Create rate limiter
+	var rateLimiter *middleware.RateLimiter
+	if redisClient != nil {
+		rateLimiter = middleware.NewRateLimiter(redisClient, rateLimitConfig, "order")
+		log.Infof("Rate limiting enabled: %d req/min", rateLimitConfig.RequestsPerMinute)
+	}
 
 	// Connect to database using GORM
 	db, err := gorm.Open(postgres.Open(dbConfig.DSN()), &gorm.Config{})
@@ -117,6 +140,11 @@ func main() {
 	r.Use(middleware.RecoveryMiddleware)
 	r.Use(middleware.SecurityHeadersMiddleware)
 	r.Use(middleware.CORSMiddleware([]string{"*"}))
+
+	// Rate limiting middleware
+	if rateLimiter != nil {
+		r.Use(rateLimiter.Middleware)
+	}
 
 	// Health check
 	r.Get("/health", orderHandler.HealthCheck)

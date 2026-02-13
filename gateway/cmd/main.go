@@ -16,7 +16,9 @@ import (
 	"github.com/microservices-go/gateway/graph/generated"
 	"github.com/microservices-go/gateway/middleware"
 	"github.com/microservices-go/shared/config"
+	"github.com/microservices-go/shared/logger"
 	sharedMiddleware "github.com/microservices-go/shared/middleware"
+	"github.com/microservices-go/shared/redis"
 )
 
 const defaultPort = "4000"
@@ -32,6 +34,29 @@ func main() {
 
 	// Load JWT config
 	jwtConfig := config.LoadJWTConfig()
+
+	// Load Redis config
+	redisConfig := config.LoadRedisConfig()
+
+	// Connect to Redis
+	redisClient, err := redis.NewClient(redisConfig)
+	if err != nil {
+		log.Printf("Warning: Failed to connect to Redis: %v", err)
+		log.Println("Rate limiting will be disabled")
+		redisClient = nil
+	} else {
+		defer redisClient.Close()
+	}
+
+	// Load rate limit config
+	rateLimitConfig := config.LoadRateLimitConfig("gateway")
+
+	// Create rate limiter
+	var rateLimiter *sharedMiddleware.RateLimiter
+	if redisClient != nil {
+		rateLimiter = sharedMiddleware.NewRateLimiter(redisClient, rateLimitConfig, "gateway")
+		logger.New("gateway").Info("Rate limiting enabled")
+	}
 
 	// Create resolver
 	resolver := graph.NewResolver(userServiceURL, orderServiceURL, paymentServiceURL)
@@ -59,6 +84,11 @@ func main() {
 	r.Use(sharedMiddleware.RecoveryMiddleware)
 	r.Use(sharedMiddleware.SecurityHeadersMiddleware)
 	r.Use(sharedMiddleware.CORSMiddleware([]string{"*"}))
+
+	// Rate limiting middleware
+	if rateLimiter != nil {
+		r.Use(rateLimiter.Middleware)
+	}
 
 	// DataLoader middleware
 	r.Use(graph.DataLoaderMiddleware(userServiceURL, orderServiceURL, paymentServiceURL))

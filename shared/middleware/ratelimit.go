@@ -1,81 +1,81 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
 	"github.com/microservices-go/shared/config"
-	"golang.org/x/time/rate"
+	"github.com/microservices-go/shared/logger"
+	"github.com/microservices-go/shared/redis"
 )
 
-// RateLimiter implements token bucket rate limiting
+// RateLimiter implements fixed window rate limiting using Redis
 type RateLimiter struct {
-	limiters map[string]*rate.Limiter
-	mu       sync.RWMutex
-	rps      rate.Limit
-	burst    int
+	redis  *redis.Client
+	config *config.RateLimitConfig
+	prefix string
 }
 
-// NewRateLimiter creates a new rate limiter
-func NewRateLimiter(cfg *config.RateLimitConfig) *RateLimiter {
+// NewRateLimiter creates a new Redis-based rate limiter
+func NewRateLimiter(redisClient *redis.Client, cfg *config.RateLimitConfig, prefix string) *RateLimiter {
 	return &RateLimiter{
-		limiters: make(map[string]*rate.Limiter),
-		rps:      rate.Limit(cfg.RequestsPerSecond),
-		burst:    cfg.BurstSize,
+		redis:  redisClient,
+		config: cfg,
+		prefix: prefix,
 	}
 }
 
-// getLimiter returns or creates a rate limiter for a key
-func (rl *RateLimiter) getLimiter(key string) *rate.Limiter {
-	rl.mu.RLock()
-	limiter, exists := rl.limiters[key]
-	rl.mu.RUnlock()
+// Allow checks if the request should be allowed
+func (rl *RateLimiter) Allow(key string) (bool, int, int, int) {
+	window := time.Duration(rl.config.WindowSeconds) * time.Second
+	limit := rl.config.RequestsPerMinute
 
-	if exists {
-		return limiter
+	fullKey := fmt.Sprintf("ratelimit:%s:%s", rl.prefix, key)
+
+	count, err := rl.redis.Increment(fullKey, window)
+	if err != nil {
+		log := logger.New("rate-limiter")
+		log.WithError(err).WithField("key", fullKey).Error("Failed to increment rate limit counter")
+		// Allow request on Redis error to avoid blocking legitimate traffic
+		return true, 0, limit, 0
 	}
 
-	rl.mu.Lock()
-	defer rl.mu.Unlock()
-
-	// Double-check after acquiring write lock
-	if limiter, exists := rl.limiters[key]; exists {
-		return limiter
+	remaining := limit - int(count)
+	if remaining < 0 {
+		remaining = 0
 	}
 
-	limiter = rate.NewLimiter(rl.rps, rl.burst)
-	rl.limiters[key] = limiter
+	allowed := count <= int64(limit)
 
-	// Cleanup old limiters periodically
-	go rl.cleanupLimiter(key, limiter)
-
-	return limiter
-}
-
-// cleanupLimiter removes limiter after it has been inactive
-func (rl *RateLimiter) cleanupLimiter(key string, limiter *rate.Limiter) {
-	time.Sleep(10 * time.Minute)
-	rl.mu.Lock()
-	delete(rl.limiters, key)
-	rl.mu.Unlock()
+	return allowed, int(count), limit, remaining
 }
 
 // Middleware returns HTTP middleware for rate limiting
 func (rl *RateLimiter) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Use IP address as key (can be customized)
+		// Use IP address as key
 		key := r.RemoteAddr
 		if forwarded := r.Header.Get("X-Forwarded-For"); forwarded != "" {
 			key = forwarded
 		}
 
-		limiter := rl.getLimiter(key)
-		if !limiter.Allow() {
+		allowed, current, limit, remaining := rl.Allow(key)
+
+		// Set rate limit headers
+		w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", limit))
+		w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
+
+		if !allowed {
 			w.Header().Set("Content-Type", "application/json")
-			w.Header().Set("X-RateLimit-Limit", string(rune(rl.rps)))
 			w.WriteHeader(http.StatusTooManyRequests)
 			w.Write([]byte(`{"error":{"code":"RATE_LIMIT_EXCEEDED","message":"Too many requests, please try again later"}}`))
+
+			log := logger.New("rate-limiter")
+			log.WithField("key", key).
+				WithField("current", current).
+				WithField("limit", limit).
+				Warn("Rate limit exceeded")
 			return
 		}
 
@@ -92,14 +92,30 @@ func (rl *RateLimiter) PerUserMiddleware(next http.Handler) http.Handler {
 			key = claims.UserID
 		}
 
-		limiter := rl.getLimiter(key)
-		if !limiter.Allow() {
+		allowed, current, limit, remaining := rl.Allow(key)
+
+		// Set rate limit headers
+		w.Header().Set("X-RateLimit-Limit", fmt.Sprintf("%d", limit))
+		w.Header().Set("X-RateLimit-Remaining", fmt.Sprintf("%d", remaining))
+
+		if !allowed {
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusTooManyRequests)
 			w.Write([]byte(`{"error":{"code":"RATE_LIMIT_EXCEEDED","message":"Too many requests, please try again later"}}`))
+
+			log := logger.New("rate-limiter")
+			log.WithField("user", key).
+				WithField("current", current).
+				WithField("limit", limit).
+				Warn("Rate limit exceeded for user")
 			return
 		}
 
 		next.ServeHTTP(w, r)
 	})
+}
+
+// Close closes the rate limiter and its Redis connection
+func (rl *RateLimiter) Close() error {
+	return rl.redis.Close()
 }

@@ -73,10 +73,23 @@ type JWTConfig struct {
 	Issuer    string
 }
 
+// RedisConfig holds Redis configuration for rate limiting
+type RedisConfig struct {
+	Host     string
+	Port     int
+	Password string
+	DB       int
+}
+
+// Addr returns Redis address
+func (c *RedisConfig) Addr() string {
+	return fmt.Sprintf("%s:%d", c.Host, c.Port)
+}
+
 // RateLimitConfig holds rate limiting configuration
 type RateLimitConfig struct {
-	RequestsPerSecond int
-	BurstSize         int
+	RequestsPerMinute int
+	WindowSeconds     int
 }
 
 // LoadDatabaseConfig loads database config from environment
@@ -122,11 +135,33 @@ func LoadJWTConfig() *JWTConfig {
 	}
 }
 
+// LoadRedisConfig loads Redis config from environment
+func LoadRedisConfig() *RedisConfig {
+	return &RedisConfig{
+		Host:     getEnv("REDIS_HOST", "localhost"),
+		Port:     getEnvAsInt("REDIS_PORT", 6379),
+		Password: getEnv("REDIS_PASSWORD", ""),
+		DB:       getEnvAsInt("REDIS_DB", 0),
+	}
+}
+
 // LoadRateLimitConfig loads rate limit config from environment
-func LoadRateLimitConfig() *RateLimitConfig {
+func LoadRateLimitConfig(service string) *RateLimitConfig {
+	prefix := strings.ToUpper(service)
+	defaultRpm := 1000
+	if service == "gateway" {
+		defaultRpm = 1000
+	} else if service == "user" {
+		defaultRpm = 500
+	} else if service == "order" {
+		defaultRpm = 200
+	} else if service == "payment" {
+		defaultRpm = 100
+	}
+
 	return &RateLimitConfig{
-		RequestsPerSecond: getEnvAsInt("RATE_LIMIT_RPS", 100),
-		BurstSize:         getEnvAsInt("RATE_LIMIT_BURST", 150),
+		RequestsPerMinute: getEnvAsInt(fmt.Sprintf("%s_RATE_LIMIT_RPM", prefix), defaultRpm),
+		WindowSeconds:     getEnvAsInt(fmt.Sprintf("%s_RATE_LIMIT_WINDOW", prefix), 60),
 	}
 }
 
