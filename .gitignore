@@ -28,6 +28,8 @@ go.work
 .env
 .env.local
 .env.*.local
+.env.nginx
+.env.docker
 
 # Build outputs
 bin/
