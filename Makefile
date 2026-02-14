@@ -325,16 +325,22 @@ playground:
 api-docs:
 	@echo "API Endpoints:"
 	@echo ""
-	@echo "GraphQL Gateway:"
+	@echo "Nginx Reverse Proxy (Recommended):"
+	@echo "  Playground: http://localhost/"
+	@echo "  Endpoint:   http://localhost/query"
+	@echo "  Cache TTL:  5 minutes"
+	@echo ""
+	@echo "GraphQL Gateway (Direct):"
 	@echo "  Playground: http://localhost:4000/"
 	@echo "  Endpoint:   http://localhost:4000/query"
 	@echo ""
-	@echo "REST Services:"
+	@echo "REST Services (Direct):"
 	@echo "  User Service:    http://localhost:8081/api/v1/users"
 	@echo "  Order Service:   http://localhost:8082/api/v1/orders"
 	@echo "  Payment Service: http://localhost:8083/api/v1/payments"
 	@echo ""
 	@echo "Health Checks:"
+	@echo "  Nginx:           http://localhost/health"
 	@echo "  User Service:    http://localhost:8081/health"
 	@echo "  Order Service:   http://localhost:8082/health"
 	@echo "  Payment Service: http://localhost:8083/health"
@@ -372,3 +378,48 @@ infra-down:
 # Full reset
 reset: clean-all
 	@echo "Full reset complete. Run 'make up-d' to start fresh."
+
+# =============================================================================
+# Nginx Commands
+# =============================================================================
+
+# Start nginx container
+nginx-up:
+	docker compose up -d nginx
+	@echo "Nginx started at http://localhost"
+	@echo "GraphQL Playground: http://localhost"
+
+# Stop nginx container
+nginx-down:
+	docker compose stop nginx
+
+# Restart nginx
+nginx-restart: nginx-down nginx-up
+
+# View nginx logs
+nginx-logs:
+	docker compose logs -f nginx
+
+# Test nginx configuration
+nginx-test:
+	docker compose exec nginx nginx -t
+
+# Reload nginx configuration (graceful reload)
+nginx-reload:
+	docker compose exec nginx nginx -s reload
+
+# Clear nginx cache (restart required)
+nginx-clear-cache:
+	docker compose stop nginx
+	docker compose rm -f nginx
+	docker volume rm microservices-go_nginx_cache || true
+	docker compose up -d nginx
+	@echo "Nginx cache cleared and restarted"
+
+# Nginx status
+nginx-status:
+	@echo "Nginx container status:"
+	@docker compose ps nginx
+	@echo ""
+	@echo "Cache status:"
+	@docker compose exec nginx du -sh /var/cache/nginx 2>/dev/null || echo "Cache empty or nginx not running"

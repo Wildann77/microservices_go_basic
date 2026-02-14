@@ -140,6 +140,23 @@ services:
     networks:
       - microservices-network
 
+  # Nginx Reverse Proxy with Caching
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "${NGINX_PORT:-80}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_cache:/var/cache/nginx
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - redis
+    networks:
+      - microservices-network
+    restart: unless-stopped
+
 volumes:
   postgres_user_data:
   postgres_order_data:
@@ -147,6 +164,7 @@ volumes:
   rabbitmq_data:
   prometheus_data:
   redis_data:
+  nginx_cache:
 
 networks:
   microservices-network:
