@@ -10,15 +10,16 @@ import (
 
 // User represents a user entity
 type User struct {
-	ID        string    `json:"id" gorm:"primaryKey;column:id"`
-	Email     string    `json:"email" gorm:"unique;column:email"`
-	Password  string    `json:"-" gorm:"column:password_hash"`
-	FirstName string    `json:"first_name" gorm:"column:first_name"`
-	LastName  string    `json:"last_name" gorm:"column:last_name"`
-	Role      string    `json:"role" gorm:"column:role"`
-	IsActive  bool      `json:"is_active" gorm:"column:is_active"`
-	CreatedAt time.Time `json:"created_at" gorm:"column:created_at"`
-	UpdatedAt time.Time `json:"updated_at" gorm:"column:updated_at"`
+	ID        string         `json:"id" gorm:"primaryKey;column:id"`
+	Email     string         `json:"email" gorm:"unique;column:email"`
+	Password  string         `json:"-" gorm:"column:password_hash"`
+	FirstName string         `json:"first_name" gorm:"column:first_name"`
+	LastName  string         `json:"last_name" gorm:"column:last_name"`
+	Role      string         `json:"role" gorm:"column:role"`
+	IsActive  bool           `json:"is_active" gorm:"column:is_active"`
+	CreatedAt time.Time      `json:"created_at" gorm:"column:created_at"`
+	UpdatedAt time.Time      `json:"updated_at" gorm:"column:updated_at"`
+	DeletedAt gorm.DeletedAt `json:"-" gorm:"index;column:deleted_at"`
 }
 
 // TableName returns the table name

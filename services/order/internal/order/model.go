@@ -21,16 +21,17 @@ const (
 
 // Order represents an order entity
 type Order struct {
-	ID           string       `json:"id" gorm:"primaryKey;column:id"`
-	UserID       string       `json:"user_id" gorm:"column:user_id"`
-	Status       OrderStatus  `json:"status" gorm:"column:status"`
-	TotalAmount  float64      `json:"total_amount" gorm:"column:total_amount"`
-	Currency     string       `json:"currency" gorm:"column:currency"`
-	ShippingAddr string       `json:"shipping_address" gorm:"column:shipping_address"`
-	Notes        string       `json:"notes,omitempty" gorm:"column:notes"`
-	CreatedAt    time.Time    `json:"created_at" gorm:"column:created_at"`
-	UpdatedAt    time.Time    `json:"updated_at" gorm:"column:updated_at"`
-	Items        []*OrderItem `json:"items,omitempty" gorm:"foreignKey:OrderID"`
+	ID           string         `json:"id" gorm:"primaryKey;column:id"`
+	UserID       string         `json:"user_id" gorm:"column:user_id"`
+	Status       OrderStatus    `json:"status" gorm:"column:status"`
+	TotalAmount  float64        `json:"total_amount" gorm:"column:total_amount"`
+	Currency     string         `json:"currency" gorm:"column:currency"`
+	ShippingAddr string         `json:"shipping_address" gorm:"column:shipping_address"`
+	Notes        string         `json:"notes,omitempty" gorm:"column:notes"`
+	CreatedAt    time.Time      `json:"created_at" gorm:"column:created_at"`
+	UpdatedAt    time.Time      `json:"updated_at" gorm:"column:updated_at"`
+	DeletedAt    gorm.DeletedAt `json:"-" gorm:"index;column:deleted_at"`
+	Items        []*OrderItem   `json:"items,omitempty" gorm:"foreignKey:OrderID"`
 }
 
 // TableName returns the table name
