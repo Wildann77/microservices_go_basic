@@ -6,9 +6,11 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/microservices-go/shared/errors"
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/middleware"
+	"github.com/microservices-go/shared/response"
 )
 
 // Handler handles HTTP requests for order service
@@ -59,11 +61,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": order,
-	})
+	response.Created(w, order)
 }
 
 // GetByID gets order by ID
@@ -81,10 +79,7 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": order,
-	})
+	response.OK(w, order)
 }
 
 // GetMyOrders gets orders for current user
@@ -111,16 +106,9 @@ func (h *Handler) GetMyOrders(w http.ResponseWriter, r *http.Request) {
 	}
 
 	count, _ := h.service.CountByUserID(ctx, claims.UserID)
+	meta := response.NewMeta(count, limit, offset)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": orders,
-		"meta": map[string]interface{}{
-			"total":  count,
-			"limit":  limit,
-			"offset": offset,
-		},
-	})
+	response.List(w, orders, meta)
 }
 
 // List lists all orders (admin only)
@@ -141,16 +129,9 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	count, _ := h.service.Count(ctx)
+	meta := response.NewMeta(count, limit, offset)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": orders,
-		"meta": map[string]interface{}{
-			"total":  count,
-			"limit":  limit,
-			"offset": offset,
-		},
-	})
+	response.List(w, orders, meta)
 }
 
 // UpdateStatus updates order status
