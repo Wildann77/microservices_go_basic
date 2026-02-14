@@ -532,6 +532,128 @@ If Redis is unavailable:
 - **Order Service**: ~70% reduction in DB reads for order history
 - **Payment Service**: ~75% reduction in DB reads for payment status checks
 
+## Soft Delete
+
+This project implements **Soft Delete** using GORM's built-in support for non-destructive data removal. Instead of permanently deleting records, they are marked as deleted with a timestamp.
+
+### Architecture
+
+Soft Delete is implemented at the **Model Layer** using GORM's `gorm.DeletedAt` type:
+- **Non-destructive**: Records are not removed from the database
+- **Automatic Filtering**: GORM automatically excludes soft-deleted records from queries
+- **Data Recovery**: Deleted records can be restored if needed
+- **Compliance**: Maintains data history for audit and compliance requirements
+
+### Implementation
+
+Add `DeletedAt` field to your model:
+
+```go
+import "gorm.io/gorm"
+
+type User struct {
+    ID        string         `gorm:"primaryKey"`
+    Email     string         `gorm:"unique"`
+    // ... other fields
+    CreatedAt time.Time
+    UpdatedAt time.Time
+    DeletedAt gorm.DeletedAt `gorm:"index" json:"-"` // Soft delete field
+}
+```
+
+### Database Migration
+
+Create migration to add the `deleted_at` column:
+
+```sql
+-- 002_add_soft_delete.up.sql
+ALTER TABLE users ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMP WITH TIME ZONE;
+CREATE INDEX IF NOT EXISTS idx_users_deleted_at ON users (deleted_at);
+```
+
+```sql
+-- 002_add_soft_delete.down.sql
+DROP INDEX IF EXISTS idx_users_deleted_at;
+ALTER TABLE users DROP COLUMN IF EXISTS deleted_at;
+```
+
+### Usage in Code
+
+**Soft Delete (Default Behavior):**
+```go
+// This performs soft delete - sets deleted_at timestamp
+err := db.Delete(&user).Error
+```
+
+**Query (Auto Excludes Soft Deleted):**
+```go
+// These queries automatically exclude soft-deleted records
+var user User
+err := db.First(&user, "id = ?", id).Error
+
+var users []User
+err := db.Find(&users).Error
+```
+
+**Include Soft Deleted Records:**
+```go
+// Use Unscoped() to include soft-deleted records
+var user User
+err := db.Unscoped().First(&user, "id = ?", id).Error
+
+// List all records including deleted
+var users []User
+err := db.Unscoped().Find(&users).Error
+```
+
+**Hard Delete (Permanent):**
+```go
+// Use Unscoped() to permanently delete
+err := db.Unscoped().Delete(&user).Error
+```
+
+### Supported Services
+
+| Service | Entity | Status |
+|---------|--------|--------|
+| **User** | User | ✅ Implemented |
+| **Order** | Order | ✅ Implemented |
+| **Payment** | Payment | ❌ Not implemented (uses status workflow) |
+
+### Best Practices
+
+1. **Always use `json:"-"`** to hide DeletedAt from API responses
+2. **Always add index** on `deleted_at` column for query performance
+3. **Don't expose soft delete** in API - it's an implementation detail
+4. **Use `Unscoped()` sparingly** - usually only for admin operations
+5. **Consider data retention** - soft-deleted data still consumes storage
+
+### Comparison: Hard Delete vs Soft Delete
+
+**Hard Delete:**
+```go
+// Permanently removes record
+DELETE FROM users WHERE id = 'xxx'
+-- Record is gone forever
+```
+
+**Soft Delete:**
+```go
+// Sets deleted_at timestamp
+UPDATE users SET deleted_at = NOW() WHERE id = 'xxx'
+-- Record is hidden but preserved
+```
+
+### Query Behavior
+
+| Query Method | Includes Deleted |
+|--------------|------------------|
+| `db.First()` | ❌ No |
+| `db.Find()` | ❌ No |
+| `db.Where()` | ❌ No |
+| `db.Unscoped().First()` | ✅ Yes |
+| `db.Unscoped().Find()` | ✅ Yes |
+
 ## Response Package
 
 This project uses **reusable structured responses** via the `shared/response` package for consistent API response formatting across all services.
