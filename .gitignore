@@ -73,9 +73,13 @@ secrets/
 # Microservices binaries
 *_bin
 gateway/gateway_bin
+gateway/main
 services/user/user_bin
+services/user/main
 services/order/order_bin
+services/order/main
 services/payment/payment_bin
+services/payment/main
 
 
 # Nginx cache (if using local volume)
