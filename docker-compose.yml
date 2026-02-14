@@ -1,5 +1,3 @@
-
-
 services:
   # PostgreSQL for User Service
   postgres-user:
@@ -84,7 +82,7 @@ services:
     networks:
       - microservices-network
 
-  # Redis for Rate Limiting
+  # Redis for Rate Limiting and Cache
   redis:
     image: redis:7-alpine
     container_name: redis
@@ -111,8 +109,8 @@ services:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
     command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
     networks:
       - microservices-network
 

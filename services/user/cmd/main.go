@@ -14,7 +14,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 
-	"github.com/microservices-go/shared/cache"
 	"github.com/microservices-go/shared/config"
 	"github.com/microservices-go/shared/logger"
 	sharedMiddleware "github.com/microservices-go/shared/middleware"
@@ -52,14 +51,11 @@ func main() {
 	// Load rate limit config
 	rateLimitConfig := config.LoadRateLimitConfig("user")
 
-	// Create rate limiter and cache
+	// Create rate limiter
 	var rateLimiter *sharedMiddleware.RateLimiter
-	var cacheClient *cache.Cache
 	if redisClient != nil {
 		rateLimiter = sharedMiddleware.NewRateLimiter(redisClient, rateLimitConfig, "user")
-		cacheClient = cache.NewCache(redisClient.GetClient(), "user")
 		log.Infof("Rate limiting enabled: %d req/min", rateLimitConfig.RequestsPerMinute)
-		log.Info("Caching enabled")
 	}
 
 	// Connect to database using GORM
@@ -116,7 +112,7 @@ func main() {
 	}
 
 	// Initialize service
-	userService := user.NewService(userRepo, jwtConfig, publisher, cacheClient)
+	userService := user.NewService(userRepo, jwtConfig, publisher)
 
 	// Initialize handler
 	userHandler := user.NewHandler(userService)
@@ -134,11 +130,6 @@ func main() {
 	r.Use(sharedMiddleware.RecoveryMiddleware)
 	r.Use(sharedMiddleware.SecurityHeadersMiddleware)
 	r.Use(sharedMiddleware.CORSMiddleware([]string{"*"}))
-
-	// Rate limiting middleware
-	if rateLimiter != nil {
-		r.Use(rateLimiter.Middleware)
-	}
 
 	// Health check
 	r.Get("/health", userHandler.HealthCheck)
