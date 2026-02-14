@@ -6,9 +6,11 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/microservices-go/shared/errors"
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/middleware"
+	"github.com/microservices-go/shared/response"
 )
 
 // Handler handles HTTP requests for payment service
@@ -61,11 +63,7 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": payment,
-	})
+	response.Created(w, payment)
 }
 
 // GetByID gets payment by ID
@@ -83,10 +81,7 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": payment,
-	})
+	response.OK(w, payment)
 }
 
 // GetByOrderID gets payment by order ID
@@ -104,10 +99,7 @@ func (h *Handler) GetByOrderID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": payment,
-	})
+	response.OK(w, payment)
 }
 
 // GetMyPayments gets payments for current user
@@ -134,16 +126,9 @@ func (h *Handler) GetMyPayments(w http.ResponseWriter, r *http.Request) {
 	}
 
 	count, _ := h.service.CountByUserID(ctx, claims.UserID)
+	meta := response.NewMeta(count, limit, offset)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": payments,
-		"meta": map[string]interface{}{
-			"total":  count,
-			"limit":  limit,
-			"offset": offset,
-		},
-	})
+	response.List(w, payments, meta)
 }
 
 // List lists all payments (admin only)
@@ -164,16 +149,9 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	count, _ := h.service.Count(ctx)
+	meta := response.NewMeta(count, limit, offset)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": payments,
-		"meta": map[string]interface{}{
-			"total":  count,
-			"limit":  limit,
-			"offset": offset,
-		},
-	})
+	response.List(w, payments, meta)
 }
 
 // Process processes a payment
