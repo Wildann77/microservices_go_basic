@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -171,6 +172,17 @@ func main() {
 			log.Fatal("Server failed: " + err.Error())
 		}
 	}()
+
+	fmt.Print(`
+
+ ██████╗  ██████╗     █████╗ ██████╗ ██╗
+██╔════╝ ██╔═══██╗   ██╔══██╗██╔══██╗██║
+██║  ███╗██║   ██║   ███████║██████╔╝██║
+██║   ██║██║   ██║   ██╔══██║██╔═══╝ ██║
+╚██████╔╝╚██████╔╝   ██║  ██║██║     ██║
+ ╚═════╝  ╚═════╝    ╚═╝  ╚═╝╚═╝     ╚═╝
+
+ `)
 
 	// Wait for interrupt signal
 	quit := make(chan os.Signal, 1)

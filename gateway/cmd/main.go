@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -102,5 +103,17 @@ func main() {
 	r.Handle("/query", srv)
 
 	log.Printf("Connect to http://localhost:%s/ for GraphQL playground", port)
+
+	fmt.Print(`
+
+ ██████╗  ██████╗     █████╗ ██████╗ ██╗
+██╔════╝ ██╔═══██╗   ██╔══██╗██╔══██╗██║
+██║  ███╗██║   ██║   ███████║██████╔╝██║
+██║   ██║██║   ██║   ██╔══██║██╔═══╝ ██║
+╚██████╔╝╚██████╔╝   ██║  ██║██║     ██║
+ ╚═════╝  ╚═════╝    ╚═╝  ╚═╝╚═╝     ╚═╝
+
+ `)
+
 	log.Fatal(http.ListenAndServe(":"+port, r))
 }
