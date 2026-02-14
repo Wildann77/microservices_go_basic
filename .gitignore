@@ -77,6 +77,7 @@ services/user/user_bin
 services/order/order_bin
 services/payment/payment_bin
 
+
 # Nginx cache (if using local volume)
 nginx/cache/
 
