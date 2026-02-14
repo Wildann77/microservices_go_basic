@@ -419,9 +419,9 @@ func (r *Repository) Create(ctx context.Context, order *Order) error {
 ### 7. Observability
 
 - **Logging**: Zerolog with structured JSON
-
-- **Metrics**: Prometheus
 - **Health Checks**: `/health` endpoint on each service
+
+**Note**: Prometheus container running (port 9090) but not actively collecting metrics - to be implemented later.
 
 ### 8. Nginx Reverse Proxy with Caching
 
@@ -602,8 +602,7 @@ When using Adminer (http://localhost:8080) to manage databases, use the followin
 | Reverse Proxy | Nginx |
 | Authentication | JWT |
 | Logging | Zerolog |
-| Tracing | OpenTelemetry + Jaeger |
-| Metrics | Prometheus |
+| Metrics | Prometheus (Zombie) |
 | Validation | go-playground/validator |
 | Testing | Go testing + testify |
 | Performance Testing | Apache Bench (ab) |
