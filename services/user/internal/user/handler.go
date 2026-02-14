@@ -6,9 +6,11 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi/v5"
+
 	"github.com/microservices-go/shared/errors"
 	"github.com/microservices-go/shared/logger"
 	"github.com/microservices-go/shared/middleware"
+	"github.com/microservices-go/shared/response"
 )
 
 // Handler handles HTTP requests for user service
@@ -62,11 +64,7 @@ func (h *Handler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": user,
-	})
+	response.Created(w, user)
 }
 
 // Login handles user login
@@ -89,10 +87,7 @@ func (h *Handler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": resp,
-	})
+	response.OK(w, resp)
 }
 
 // GetByID gets user by ID
@@ -110,10 +105,7 @@ func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": user,
-	})
+	response.OK(w, user)
 }
 
 // GetMe gets current user
@@ -136,10 +128,7 @@ func (h *Handler) GetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": user,
-	})
+	response.OK(w, user)
 }
 
 // List lists all users
@@ -160,16 +149,9 @@ func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
 	}
 
 	count, _ := h.service.Count(ctx)
+	meta := response.NewMeta(count, limit, offset)
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": users,
-		"meta": map[string]interface{}{
-			"total":  count,
-			"limit":  limit,
-			"offset": offset,
-		},
-	})
+	response.List(w, users, meta)
 }
 
 // Update updates user
@@ -193,10 +175,7 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": user,
-	})
+	response.OK(w, user)
 }
 
 // Delete deletes user
@@ -213,7 +192,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
+	response.Deleted(w, "User deleted successfully")
 }
 
 // GetBatch gets multiple users by IDs
@@ -243,10 +222,7 @@ func (h *Handler) GetBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": users,
-	})
+	response.Batch(w, users)
 }
 
 // HealthCheck handles health check
