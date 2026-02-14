@@ -49,10 +49,7 @@ func main() {
 		log.Info("Connected to Redis")
 	}
 
-	// Load rate limit config
-	rateLimitConfig := config.LoadRateLimitConfig("user")
-
-	// Create rate limiter and cache client
+	// Create cache client
 	var cacheClient *cache.Cache
 	if redisClient != nil {
 		cacheClient = cache.NewCache(redisClient.GetClient(), "user")
@@ -113,7 +110,7 @@ func main() {
 	}
 
 	// Initialize service
-	userService := user.NewService(userRepo, jwtConfig, publisher)
+	userService := user.NewService(userRepo, jwtConfig, publisher, cacheClient)
 
 	// Initialize handler
 	userHandler := user.NewHandler(userService)
