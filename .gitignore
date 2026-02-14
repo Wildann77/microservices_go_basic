@@ -67,3 +67,25 @@ gateway/graph/model/models_gen.go
 secrets/
 *.pem
 *.key
+
+# Microservices binaries
+*_bin
+gateway/gateway_bin
+services/user/user_bin
+services/order/order_bin
+services/payment/payment_bin
+
+# Nginx cache (if using local volume)
+nginx/cache/
+
+# Air (hot reload) config
+.air.toml
+
+# Local environment overrides
+.env.override
+.env.development.local
+.env.production.local
+
+# Database migrations backup
+*.backup
+migrations/*.backup

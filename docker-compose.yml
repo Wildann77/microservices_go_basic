@@ -149,12 +149,11 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - nginx_cache:/var/cache/nginx
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    # Linux: Use host networking mode to access host services
+    # This allows nginx to reach gateway on localhost:4000
+    network_mode: host
     depends_on:
       - redis
-    networks:
-      - microservices-network
     restart: unless-stopped
 
 volumes:

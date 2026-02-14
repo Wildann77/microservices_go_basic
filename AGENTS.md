@@ -654,6 +654,125 @@ UPDATE users SET deleted_at = NOW() WHERE id = 'xxx'
 | `db.Unscoped().First()` | ✅ Yes |
 | `db.Unscoped().Find()` | ✅ Yes |
 
+## Nginx Reverse Proxy
+
+This project uses **Nginx** as a reverse proxy with caching layer in front of the GraphQL Gateway.
+
+### Architecture
+
+```
+Clients
+   |
+   v
+[Nginx] :80  ← Reverse Proxy + Cache
+   |
+   v
+[GraphQL Gateway] :4000
+   |
+   +---> Services (User, Order, Payment)
+```
+
+**Benefits:**
+- **Single Entry Point**: All clients access via port 80
+- **Caching Layer**: GraphQL responses cached for 5 minutes
+- **Rate Limiting**: Backup protection (1000 req/min)
+- **Static Assets**: 1 year cache for CSS/JS files
+- **Security Headers**: X-Frame-Options, X-Content-Type-Options
+
+### Configuration
+
+**Port**: 80 (HTTP)
+**Upstream**: Gateway at `host.docker.internal:4000`
+**Cache Storage**: In-memory (10MB zone, 100MB max)
+**Cache Duration**: 5 minutes for GraphQL queries
+
+### Cache Headers
+
+Nginx adds `X-Cache-Status` header to responses:
+
+| Status | Meaning |
+|--------|---------|
+| `HIT` | Response served from cache (< 1ms) |
+| `MISS` | Cache not found, fetched from gateway |
+| `EXPIRED` | Cache expired, fetching fresh data |
+| `UPDATING` | Cache being refreshed |
+
+### Usage
+
+**Start Nginx:**
+```bash
+make nginx-up
+```
+
+**Access GraphQL Playground:**
+```
+http://localhost
+```
+
+**Available Commands:**
+
+| Command | Description |
+|---------|-------------|
+| `make nginx-up` | Start nginx container |
+| `make nginx-down` | Stop nginx container |
+| `make nginx-restart` | Restart nginx |
+| `make nginx-logs` | View nginx logs |
+| `make nginx-test` | Test configuration |
+| `make nginx-reload` | Reload configuration (graceful) |
+| `make nginx-clear-cache` | Clear cache and restart |
+| `make nginx-status` | Check nginx status |
+
+### Cache Invalidation
+
+**Clear all cache:**
+```bash
+make nginx-clear-cache
+```
+
+**Reload configuration (without clearing cache):**
+```bash
+make nginx-reload
+```
+
+### Setup Requirements
+
+**Prerequisites:**
+1. Infrastructure running: `make infra`
+2. Gateway running locally: `make run-gateway`
+3. Services running locally: `make run-user`, `make run-order`, `make run-payment`
+
+**Note for Linux users:**
+Add to `/etc/hosts`:
+```
+127.0.0.1 host.docker.internal
+```
+
+### Network Configuration
+
+Nginx runs in Docker container and connects to gateway via `host.docker.internal` (host machine localhost).
+
+### Performance
+
+- **Cache Hit**: < 1ms response time
+- **Cache Miss**: Normal gateway response time (10-100ms)
+- **Cache Hit Ratio**: ~60-80% for read-heavy workloads
+
+### Troubleshooting
+
+**Nginx cannot connect to gateway:**
+```bash
+# Verify gateway is running
+curl http://localhost:4000/health
+
+# Check nginx logs
+make nginx-logs
+```
+
+**Cache not working:**
+- Check `X-Cache-Status` header in response
+- Clear cache: `make nginx-clear-cache`
+- Verify cache zone: `make nginx-status`
+
 ## Response Package
 
 This project uses **reusable structured responses** via the `shared/response` package for consistent API response formatting across all services.
