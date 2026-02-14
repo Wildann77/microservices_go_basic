@@ -419,7 +419,7 @@ func (r *Repository) Create(ctx context.Context, order *Order) error {
 ### 7. Observability
 
 - **Logging**: Zerolog with structured JSON
-- **Tracing**: OpenTelemetry with Jaeger
+
 - **Metrics**: Prometheus
 - **Health Checks**: `/health` endpoint on each service
 
@@ -573,8 +573,7 @@ make up-d
 | Nginx | http://localhost/health | Reverse proxy health |
 | Adminer | http://localhost:8080 | Database management UI |
 | RabbitMQ Management | http://localhost:15672 | Message queue monitoring |
-| Jaeger | http://localhost:16686 | Distributed tracing |
-| Prometheus | http://localhost:9090 | Metrics collection |
+| Prometheus | http://localhost:9090 | Metrics collection (Zombie) |
 
 ### Connecting to Databases via Adminer
 
