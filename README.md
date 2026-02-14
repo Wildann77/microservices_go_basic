@@ -88,7 +88,7 @@ make run-gateway
 | Payment Service REST | http://localhost:8083/api/v1/payments | Direct access |
 | Adminer (DB UI) | http://localhost:8080 | Database management |
 | RabbitMQ Management | http://localhost:15672 | guest/guest |
-| Jaeger UI | http://localhost:16686 | Distributed tracing |
+
 | Prometheus | http://localhost:9090 | Metrics |
 
 **💡 Recommendation:** Use Nginx (port 80) for best performance with caching enabled.
