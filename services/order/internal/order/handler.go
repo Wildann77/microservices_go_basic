@@ -155,10 +155,7 @@ func (h *Handler) UpdateStatus(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": order,
-	})
+	response.OK(w, order)
 }
 
 // GetBatch gets multiple orders by IDs
@@ -188,10 +185,7 @@ func (h *Handler) GetBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": orders,
-	})
+	response.Batch(w, orders)
 }
 
 // GetByUserID gets orders for a specific user
@@ -212,10 +206,7 @@ func (h *Handler) GetByUserID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": orders,
-	})
+	response.OK(w, orders)
 }
 
 // HealthCheck handles health check
