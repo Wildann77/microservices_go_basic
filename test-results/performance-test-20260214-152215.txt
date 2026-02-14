@@ -1,0 +1,96 @@
+
+[0;34m========================================[0m
+[0;34m1. SINGLE REQUEST LATENCY TEST[0m
+[0;34m========================================[0m
+
+Testing direct service access...
+[1;33mTesting: User Service - Health[0m
+200[0;32m✓ Response time: 18ms[0m
+
+18
+[1;33mTesting: Order Service - Health[0m
+200[0;32m✓ Response time: 18ms[0m
+
+18
+[1;33mTesting: Payment Service - Health[0m
+200[0;32m✓ Response time: 20ms[0m
+
+20
+[1;33mTesting: Gateway - Playground[0m
+200[0;32m✓ Response time: 15ms[0m
+
+15
+Testing via Nginx...
+[1;33mTesting: Nginx - Playground[0m
+200[0;32m✓ Response time: 19ms[0m
+
+19
+[1;33mTesting: Nginx - Health[0m
+404[0;32m✓ Response time: 16ms[0m
+
+16
+
+[0;34m========================================[0m
+[0;34m2. CACHE PERFORMANCE TEST[0m
+[0;34m========================================[0m
+
+[1;33mCache Test: GraphQL Playground (Nginx)[0m
+URL: http://localhost/
+
+1. First request (cache miss):
+   Status: X-Cache-Status: MISS
+   Time: 0.000808s
+
+2. Second request (cache hit):
+   Status: X-Cache-Status: HIT
+   Time: 0.001095s
+
+[0;32mImprovement: -35.00% faster[0m
+
+[1;33mCache Test: User API (Direct)[0m
+URL: http://localhost:8081/api/v1/users/3f98c4d4-b655-46db-a296-dac8a37ea320
+
+1. First request (cache miss):
+   Status: No cache header
+   Time: 0.0318830.000000{"error":{"code":"UNAUTHORIZED","message":"Missing authorization header"}}
+0.002021s
+
+2. Second request (cache hit):
+   Status: No cache header
+   Time: 0.0076610.000000{"error":{"code":"UNAUTHORIZED","message":"Missing authorization header"}}
+0.001150s
+
+[0;32mImprovement: .202100% faster[0m
+
+
+[0;34m========================================[0m
+[0;34m3. LOAD TEST - REST APIs[0m
+[0;34m========================================[0m
+
+[1;33mLoad Test: User Service Health[0m
+URL: http://localhost:8081/health
+Requests: 100, Concurrency: 10
+
+Failed requests:        0
+Requests per second:    5252.10 [#/sec] (mean)
+Time per request:       1.904 [ms] (mean)
+Time per request:       0.190 [ms] (mean, across all concurrent requests)
+Transfer rate:          4949.49 [Kbytes/sec] received
+  50%      1
+  75%      2
+  90%      3
+  99%      4
+
+[1;33mLoad Test: Order Service Health[0m
+URL: http://localhost:8082/health
+Requests: 100, Concurrency: 10
+
+Failed requests:        0
+Requests per second:    3159.26 [#/sec] (mean)
+Time per request:       3.165 [ms] (mean)
+Time per request:       0.317 [ms] (mean, across all concurrent requests)
+Transfer rate:          2980.32 [Kbytes/sec] received
+  50%      2
+  75%      3
+  90%      5
+  99%      8

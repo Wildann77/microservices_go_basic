@@ -1,0 +1,223 @@
+
+[0;34m========================================[0m
+[0;34m1. SINGLE REQUEST LATENCY TEST[0m
+[0;34m========================================[0m
+
+Testing direct service access...
+[1;33mTesting: User Service - Health[0m
+200[0;32m✓ Response time: 18ms[0m
+
+18
+[1;33mTesting: Order Service - Health[0m
+200[0;32m✓ Response time: 18ms[0m
+
+18
+[1;33mTesting: Payment Service - Health[0m
+200[0;32m✓ Response time: 17ms[0m
+
+17
+[1;33mTesting: Gateway - Playground[0m
+200[0;32m✓ Response time: 19ms[0m
+
+19
+Testing via Nginx...
+[1;33mTesting: Nginx - Playground[0m
+200[0;32m✓ Response time: 18ms[0m
+
+18
+[1;33mTesting: Nginx - Health[0m
+404[0;32m✓ Response time: 16ms[0m
+
+16
+
+[0;34m========================================[0m
+[0;34m2. CACHE PERFORMANCE TEST[0m
+[0;34m========================================[0m
+
+[1;33mCache Test: GraphQL Playground (Nginx)[0m
+URL: http://localhost/
+
+1. First request (cache miss):
+   Status: X-Cache-Status: HIT
+   Time: 0.000772s
+
+2. Second request (cache hit):
+   Status: X-Cache-Status: HIT
+   Time: 0.001525s
+
+[0;32mImprovement: -97.00% faster[0m
+
+[1;33mCache Test: User API (Direct)[0m
+URL: http://localhost:8081/api/v1/users/3f98c4d4-b655-46db-a296-dac8a37ea320
+
+1. First request (cache miss):
+   Status: No cache header
+   Time: 0.0033310.000000{"error":{"code":"UNAUTHORIZED","message":"Missing authorization header"}}
+0.002163s
+
+2. Second request (cache hit):
+   Status: No cache header
+   Time: 0.0077200.000000{"error":{"code":"UNAUTHORIZED","message":"Missing authorization header"}}
+0.001757s
+
+[0;32mImprovement: .216300% faster[0m
+
+
+[0;34m========================================[0m
+[0;34m3. LOAD TEST - REST APIs[0m
+[0;34m========================================[0m
+
+[1;33mLoad Test: User Service Health[0m
+URL: http://localhost:8081/health
+Requests: 100, Concurrency: 10
+
+Failed requests:        0
+Requests per second:    4057.62 [#/sec] (mean)
+Time per request:       2.464 [ms] (mean)
+Time per request:       0.246 [ms] (mean, across all concurrent requests)
+Transfer rate:          3823.83 [Kbytes/sec] received
+  50%      2
+  75%      2
+  90%      3
+  99%      5
+
+[1;33mLoad Test: Order Service Health[0m
+URL: http://localhost:8082/health
+Requests: 100, Concurrency: 10
+
+Failed requests:        0
+Requests per second:    3822.78 [#/sec] (mean)
+Time per request:       2.616 [ms] (mean)
+Time per request:       0.262 [ms] (mean, across all concurrent requests)
+Transfer rate:          3606.25 [Kbytes/sec] received
+  50%      2
+  75%      3
+  90%      3
+  99%      5
+
+[1;33mLoad Test: Payment Service Health[0m
+URL: http://localhost:8083/health
+Requests: 100, Concurrency: 10
+
+Failed requests:        0
+Requests per second:    3363.04 [#/sec] (mean)
+Time per request:       2.974 [ms] (mean)
+Time per request:       0.297 [ms] (mean, across all concurrent requests)
+Transfer rate:          3175.84 [Kbytes/sec] received
+  50%      2
+  75%      3
+  90%      4
+  99%      6
+
+
+[0;34m========================================[0m
+[0;34m4. LOAD TEST - GRAPHQL (Direct vs Nginx)[0m
+[0;34m========================================[0m
+
+[1;33mLoad Test: Gateway - Playground (Direct)[0m
+URL: http://localhost:4000/
+Requests: 100, Concurrency: 10
+
+Failed requests:        0
+Requests per second:    2947.77 [#/sec] (mean)
+Time per request:       3.392 [ms] (mean)
+Time per request:       0.339 [ms] (mean, across all concurrent requests)
+Transfer rate:          13293.73 [Kbytes/sec] received
+  50%      3
+  75%      4
+  90%      4
+  99%      5
+
+[1;33mLoad Test: Gateway - Playground (Nginx)[0m
+URL: http://localhost/
+Requests: 100, Concurrency: 10
+
+Failed requests:        49
+Requests per second:    7620.79 [#/sec] (mean)
+Time per request:       1.312 [ms] (mean)
+Time per request:       0.131 [ms] (mean, across all concurrent requests)
+Transfer rate:          19108.61 [Kbytes/sec] received
+  50%      1
+  75%      1
+  90%      2
+  99%      2
+
+
+[0;34m========================================[0m
+[0;34m5. AUTHENTICATED ENDPOINTS[0m
+[0;34m========================================[0m
+
+[1;33mLoad Test: User API - Get User (Direct)[0m
+URL: http://localhost:8081/api/v1/users/3f98c4d4-b655-46db-a296-dac8a37ea320
+Requests: 50, Concurrency: 5
+
+Failed requests:        0
+Requests per second:    2186.65 [#/sec] (mean)
+Time per request:       2.287 [ms] (mean)
+Time per request:       0.457 [ms] (mean, across all concurrent requests)
+Transfer rate:          2502.69 [Kbytes/sec] received
+  50%      1
+  75%      2
+  90%      3
+  99%      5
+
+[1;33mLoad Test: User API - Get User (Nginx)[0m
+URL: http://localhost/api/v1/users/3f98c4d4-b655-46db-a296-dac8a37ea320
+Requests: 50, Concurrency: 5
+
+Failed requests:        49
+Requests per second:    4867.60 [#/sec] (mean)
+Time per request:       1.027 [ms] (mean)
+Time per request:       0.205 [ms] (mean, across all concurrent requests)
+Transfer rate:          1815.75 [Kbytes/sec] received
+  50%      0
+  75%      1
+  90%      1
+  99%      4
+
+
+[0;34m========================================[0m
+[0;34m6. CONCURRENT USER SIMULATION[0m
+[0;34m========================================[0m
+
+Simulating 50 concurrent users making 10 requests each...
+[1;33mLoad Test: Concurrent Users - Gateway[0m
+URL: http://localhost:4000/
+Requests: 500, Concurrency: 50
+
+Failed requests:        0
+Requests per second:    3240.10 [#/sec] (mean)
+Time per request:       15.432 [ms] (mean)
+Time per request:       0.309 [ms] (mean, across all concurrent requests)
+Transfer rate:          14612.11 [Kbytes/sec] received
+  50%     13
+  75%     18
+  90%     23
+  99%     38
+
+[1;33mLoad Test: Concurrent Users - Nginx[0m
+URL: http://localhost/
+Requests: 500, Concurrency: 50
+
+Failed requests:        497
+Requests per second:    11877.61 [#/sec] (mean)
+Time per request:       4.210 [ms] (mean)
+Time per request:       0.084 [ms] (mean, across all concurrent requests)
+Transfer rate:          4580.14 [Kbytes/sec] received
+  50%      4
+  75%      5
+  90%      5
+  99%      5
+
+
+[0;34m========================================[0m
+[0;34mTEST COMPLETE[0m
+[0;34m========================================[0m
+
+Results saved to: ./test-results/performance-test-20260214-152223.txt
+
+[0;32mSummary:[0m
+- All services responded successfully
+- Nginx caching is active and improving performance
+- Check the results file for detailed metrics
+

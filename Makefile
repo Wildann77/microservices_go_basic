@@ -423,3 +423,34 @@ nginx-status:
 	@echo ""
 	@echo "Cache status:"
 	@docker compose exec nginx du -sh /var/cache/nginx 2>/dev/null || echo "Cache empty or nginx not running"
+
+# =============================================================================
+# Performance Testing
+# =============================================================================
+
+# Run full performance test suite
+test-performance:
+	@chmod +x test-performance.sh
+	@./test-performance.sh
+
+# Run quick performance report
+test-performance-quick:
+	@chmod +x test-performance-quick.sh
+	@./test-performance-quick.sh
+
+# View performance report
+test-performance-report:
+	@if [ -f PERFORMANCE-REPORT.md ]; then \
+		cat PERFORMANCE-REPORT.md; \
+	else \
+		echo "Performance report not found. Run 'make test-performance' first."; \
+	fi
+
+# Load test specific endpoint
+# Usage: make load-test URL=http://localhost/ CONCURRENCY=10 REQUESTS=100
+load-test:
+	@if [ -z "$(URL)" ]; then \
+		echo "Usage: make load-test URL=http://localhost/ CONCURRENCY=10 REQUESTS=100"; \
+		exit 1; \
+	fi
+	ab -n $(REQUESTS) -c $(CONCURRENCY) "$(URL)"
