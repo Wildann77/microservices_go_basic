@@ -618,7 +618,7 @@ When using Adminer (http://localhost:8080) to manage databases, use the followin
 
 ## 📝 License
 
-MIT License - see LICENSE file for details
+MIT License - see LICENSE file for details.
 
 ## 📧 Support
 
