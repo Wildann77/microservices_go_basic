@@ -532,6 +532,183 @@ If Redis is unavailable:
 - **Order Service**: ~70% reduction in DB reads for order history
 - **Payment Service**: ~75% reduction in DB reads for payment status checks
 
+## Response Package
+
+This project uses **reusable structured responses** via the `shared/response` package for consistent API response formatting across all services.
+
+### Architecture
+
+Response helpers provide standardized JSON response formatting:
+- **Type Safety**: Uses Go generics for compile-time type checking
+- **Consistency**: All services return responses in the same format
+- **Reduced Boilerplate**: No need to manually set headers and encode JSON in each handler
+- **HTTP Standards**: Proper status codes (200, 201, 204) and Content-Type headers
+
+### Response Types
+
+| Type | Usage | JSON Format |
+|------|-------|-------------|
+| `Response[T]` | Single resource | `{"data": <resource>}` |
+| `ListResponse[T]` | Paginated list | `{"data": [<items>], "meta": {"total": N, "limit": N, "offset": N}}` |
+| `BatchResponse[T]` | Batch operations | `{"data": [<items>], "count": N}` |
+| `DeleteResponse` | Delete operations | `{"message": "..."}` |
+
+### Usage in Handlers
+
+Import the response package:
+```go
+import "github.com/microservices-go/shared/response"
+```
+
+**Single Resource (GET / POST / PUT):**
+```go
+func (h *Handler) GetByID(w http.ResponseWriter, r *http.Request) {
+    order, err := h.service.GetByID(ctx, id)
+    if err != nil {
+        // handle error
+        return
+    }
+    
+    // Returns 200 OK with {"data": order}
+    response.OK(w, order)
+}
+```
+
+**Create Resource (POST):**
+```go
+func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
+    order, err := h.service.Create(ctx, &req)
+    if err != nil {
+        // handle error
+        return
+    }
+    
+    // Returns 201 Created with {"data": order}
+    response.Created(w, order)
+}
+```
+
+**Paginated List (GET with pagination):**
+```go
+func (h *Handler) List(w http.ResponseWriter, r *http.Request) {
+    orders, err := h.service.List(ctx, limit, offset)
+    if err != nil {
+        // handle error
+        return
+    }
+    
+    count, _ := h.service.Count(ctx)
+    meta := response.NewMeta(count, limit, offset)
+    
+    // Returns 200 OK with {"data": [...], "meta": {"total": N, "limit": N, "offset": N}}
+    response.List(w, orders, meta)
+}
+```
+
+**Batch Operations (POST /batch):**
+```go
+func (h *Handler) GetBatch(w http.ResponseWriter, r *http.Request) {
+    orders, err := h.service.GetByIDs(ctx, ids)
+    if err != nil {
+        // handle error
+        return
+    }
+    
+    // Returns 200 OK with {"data": [...], "count": N}
+    response.Batch(w, orders)
+}
+```
+
+**Delete Operations (DELETE):**
+```go
+func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
+    if err := h.service.Delete(ctx, id); err != nil {
+        // handle error
+        return
+    }
+    
+    // Returns 200 OK with {"message": "User deleted successfully"}
+    response.Deleted(w, "User deleted successfully")
+}
+```
+
+**No Content (DELETE alternative):**
+```go
+// Returns 204 No Content (empty body)
+response.NoContent(w)
+```
+
+### Available Helper Functions
+
+| Function | Status Code | Use Case |
+|----------|-------------|----------|
+| `response.OK(w, data)` | 200 | Single resource response |
+| `response.Created(w, data)` | 201 | Resource creation |
+| `response.List(w, data, meta)` | 200 | Paginated list |
+| `response.Batch(w, data)` | 200 | Batch operations |
+| `response.Deleted(w, message)` | 200 | Delete with message |
+| `response.NoContent(w)` | 204 | Empty response |
+| `response.JSON(w, data, status)` | Custom | Generic with custom status |
+
+### Meta Helper
+
+Create pagination metadata:
+```go
+// Simple creation
+meta := response.NewMeta(total, limit, offset)
+
+// Using builder pattern
+meta := response.NewMeta(0, 10, 0).WithTotal(100)
+```
+
+### Best Practices
+
+1. **Always handle errors before response helpers**
+   ```go
+   data, err := service.GetData()
+   if err != nil {
+       errors.Wrap(err, errors.ErrNotFound, "...").WriteHTTPResponse(w)
+       return
+   }
+   response.OK(w, data)
+   ```
+
+2. **Use appropriate helper for each operation**
+   - `Created` for POST requests that create resources
+   - `OK` for GET and PUT requests
+   - `List` for paginated endpoints
+   - `Batch` for batch endpoints
+   - `Deleted` for DELETE with message
+   - `NoContent` for DELETE without body
+
+3. **Keep error handling separate**
+   - Response package is for **success responses only**
+   - Continue using `errors.AppError` for error responses
+
+4. **Type safety with generics**
+   ```go
+   // Compiler ensures type safety
+   var order *OrderResponse
+   response.OK(w, order) // ✓ Works
+   response.OK(w, "string") // ✓ Also works, but compiler knows type
+   ```
+
+### Migration from Inline Maps
+
+**Before:**
+```go
+w.Header().Set("Content-Type", "application/json")
+w.WriteHeader(http.StatusCreated)
+json.NewEncoder(w).Encode(map[string]interface{}{
+    "data": order,
+})
+```
+
+**After:**
+```go
+response.Created(w, order)
+```
+
 ## DataLoader
 
 This project uses **DataLoader pattern** to solve N+1 query problems when fetching related entities in batches.
