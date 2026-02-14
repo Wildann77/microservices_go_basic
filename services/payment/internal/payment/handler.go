@@ -175,10 +175,7 @@ func (h *Handler) Process(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": payment,
-	})
+	response.OK(w, payment)
 }
 
 // Refund refunds a payment
@@ -202,10 +199,7 @@ func (h *Handler) Refund(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": payment,
-	})
+	response.OK(w, payment)
 }
 
 // GetBatch gets multiple payments by IDs
@@ -235,10 +229,7 @@ func (h *Handler) GetBatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": payments,
-	})
+	response.Batch(w, payments)
 }
 
 // GetBatchByOrderID gets multiple payments by order IDs
@@ -268,10 +259,7 @@ func (h *Handler) GetBatchByOrderID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]interface{}{
-		"data": payments,
-	})
+	response.Batch(w, payments)
 }
 
 // HealthCheck handles health check
