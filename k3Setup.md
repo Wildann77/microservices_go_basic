@@ -6,16 +6,6 @@ Berikut rencana lengkap deploy project ini ke Kubernetes lokal:
 
 ### **Phase 1: Persiapan**
 
-**1. Install Tools**
-```bash
-# Install k3d
-curl -s https://raw.githubusercontent.com/k3d-io/k3d/main/install.sh | bash
-
-# Install kubectl (sudah include dengan k3d)
-# Verify
-k3d version
-kubectl version --client
-```
 
 **2. Setup k3d Cluster**
 ```bash
