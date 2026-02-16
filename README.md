@@ -416,14 +416,45 @@ func (r *Repository) Create(ctx context.Context, order *Order) error {
 - CORS configuration
 - SQL injection safe (parameterized queries)
 
-### 7. Observability
+### 7. Standardized Responses
+
+All services use a standardized JSON response format via the `shared/response` package:
+
+```go
+// Success Response
+return response.Success(w, data, "Operation successful")
+
+// Error Response
+return response.Error(w, errors.ErrNotFound, "Resource not found")
+```
+
+Structure:
+```json
+{
+  "success": true,
+  "message": "Operation successful",
+  "data": { ... },
+  "meta": { ... }
+}
+```
+
+### 8. Soft Delete
+
+Implemented using GORM's `DeletedAt`:
+
+- **User & Order Services**: Records are marked as deleted (timestamped) rather than physically removed.
+- **Data Safety**: Prevents accidental data loss and maintains audit history.
+- ** Automatic Filtering**: GORM automatically excludes soft-deleted records from standard queries.
+
+### 9. Observability
 
 - **Logging**: Zerolog with structured JSON
 - **Health Checks**: `/health` endpoint on each service
+- **Tracing**: OpenTelemetry (prepared)
 
 **Note**: Prometheus container running (port 9090) but not actively collecting metrics - to be implemented later.
 
-### 8. Nginx Reverse Proxy with Caching
+### 10. Nginx Reverse Proxy with Caching
 
 Nginx serves as the entry point for all client requests, providing:
 
@@ -566,6 +597,61 @@ make up-d
 5. **Monitoring**: Set up alerts in Prometheus/Grafana
 6. **Backups**: Configure database backups
 
+## ☸️ Kubernetes (k3s) Deployment
+
+This project includes Kubernetes manifests for deploying to k3s, a lightweight Kubernetes distribution.
+
+### Prerequisites
+
+- k3s installed and running
+- kubectl configured
+
+### Quick Start
+
+```bash
+# Setup (verify k3s and create namespace)
+make k3s-setup
+
+# Build images and load into k3s
+make k3s-build
+make k3s-import
+
+# Deploy to k3s
+make k3s-deploy
+```
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `make k3s-setup` | Verify k3s and create namespace |
+| `make k3s-build` | Build and load images into k3s |
+| `make k3s-deploy` | Deploy to k3s |
+| `make k3s-up` | Build and deploy (one command) |
+| `make k3s-status` | Check pod status |
+| `make k3s-logs SERVICE=gateway` | View service logs |
+| `make k3s-redeploy` | Redeploy services |
+| `make k3s-clean` | Delete namespace (cleanup) |
+| `make k3s-test` | Run API tests |
+
+### Access URLs (After Deployment)
+
+**NodePort (Direct):**
+- Gateway: http://localhost:30080
+- Health: http://localhost:30080/health
+- GraphQL: http://localhost:30080/query
+
+**Ingress (without host):**
+- Gateway: http://localhost
+- Health: http://localhost/health
+- GraphQL: http://localhost/query
+
+**Ingress (with host):**
+- Add `127.0.0.1 microservices.local` to /etc/hosts
+- Gateway: http://microservices.local
+
+For more details, see [k8s/README.md](k8s/README.md).
+
 ## 📊 Monitoring
 
 | Tool | URL | Purpose |
@@ -602,6 +688,7 @@ When using Adminer (http://localhost:8080) to manage databases, use the followin
 | Reverse Proxy | Nginx |
 | Authentication | JWT |
 | Logging | Zerolog |
+| Configuration | godotenv (Auto-loading) |
 | Metrics | Prometheus (Zombie) |
 | Validation | go-playground/validator |
 | Testing | Go testing + testify |

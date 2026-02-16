@@ -7,7 +7,9 @@
 set -e
 
 NAMESPACE="microservices"
-KUBECONFIG="${HOME}/.kube/config"
+
+# Set kubeconfig
+export KUBECONFIG="${HOME}/.kube/config"
 
 # Colors
 RED='\033[0;31m'

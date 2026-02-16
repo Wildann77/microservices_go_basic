@@ -6,6 +6,9 @@
 
 NAMESPACE="microservices"
 
+# Set kubeconfig
+export KUBECONFIG="$HOME/.kube/config"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'

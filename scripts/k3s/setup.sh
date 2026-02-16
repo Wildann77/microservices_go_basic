@@ -140,6 +140,13 @@ show_next_steps() {
     echo "Or run all at once:"
     echo "  ./setup.sh"
     echo ""
+    echo "======================================"
+    echo "Access URLs (after deployment):"
+    echo "======================================"
+    echo "  Gateway:     http://localhost:30080"
+    echo "  Health:      http://localhost:30080/health"
+    echo "  GraphQL:     http://localhost:30080/query"
+    echo ""
 }
 
 main() {

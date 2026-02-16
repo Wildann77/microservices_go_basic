@@ -11,6 +11,9 @@ PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../../" && pwd)"
 BUILD_DIR="${PROJECT_ROOT}/build"
 DIST_DIR="${PROJECT_ROOT}/dist"
 
+# Set kubeconfig (for checking connection)
+export KUBECONFIG="$HOME/.kube/config"
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'

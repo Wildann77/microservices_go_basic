@@ -27,6 +27,7 @@ help:
 	@echo "   make k3s-redeploy - Redeploy (soft/hard/full)"
 	@echo "   make k3s-clean    - Remove k3s resources + images"
 	@echo "   make k3s-rmi      - Remove Docker images only"
+	@echo "   make k3s-reset    - Reset k3s cluster (factory fresh)"
 	@echo ""
 	@echo "🐳 DOCKER COMPOSE:"
 	@echo "   make up           - Start all services"
@@ -47,9 +48,13 @@ help:
 	@echo "   make migrate-up   - Run migrations"
 	@echo "   make health       - Check health"
 	@echo ""
+	@echo "🎯 CODE GENERATION:"
+	@echo "   make generate     - Generate GraphQL code (gqlgen)"
+	@echo ""
 	@echo "📊 EXAMPLES:"
 	@echo "   make k3s-logs SERVICE=gateway    # View gateway logs"
 	@echo "   make k3s-scale SERVICE=user REPLICAS=3"
+
 
 # =============================================================================
 # K3S DEPLOYMENT
@@ -82,8 +87,9 @@ k3s-deploy:
 
 # Check status
 k3s-status:
-	@chmod +x scripts/k3s/status.sh
-	@./scripts/k3s/status.sh
+	@export KUBECONFIG=$$HOME/.kube/config && \
+	chmod +x scripts/k3s/status.sh && \
+	./scripts/k3s/status.sh
 
 # View logs (usage: make k3s-logs SERVICE=gateway)
 k3s-logs:
@@ -108,6 +114,11 @@ k3s-rmi:
 	@sudo k3s ctr images rm localhost:5000/order-service:latest || true
 	@sudo k3s ctr images rm localhost:5000/payment-service:latest || true
 	@echo "Images removed!"
+
+# Reset k3s cluster (3 levels: soft/hard/reinstall)
+k3s-reset:
+	@chmod +x scripts/k3s/reset-cluster.sh
+	@./scripts/k3s/reset-cluster.sh
 
 # Run tests
 k3s-test:
@@ -232,6 +243,17 @@ dev-all:
 
 install-air:
 	@go install github.com/air-verse/air@latest
+
+# =============================================================================
+# GRAPHQL CODE GENERATION
+# =============================================================================
+
+generate:
+	@cd gateway && go run github.com/99designs/gqlgen generate
+
+generate-check:
+	@which gqlgen || go install github.com/99designs/gqlgen@latest
+	@cd gateway && gqlgen generate
 
 # =============================================================================
 # TESTING & MIGRATIONS

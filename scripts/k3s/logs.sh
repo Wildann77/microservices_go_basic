@@ -6,6 +6,9 @@
 
 NAMESPACE="microservices"
 
+# Set kubeconfig
+export KUBECONFIG="$HOME/.kube/config"
+
 show_usage() {
     echo "Usage: $0 [service]"
     echo ""
