@@ -114,6 +114,9 @@ deploy_applications() {
     log_info "Deploying gateway..."
     kubectl apply -f "${K8S_DIR}/40-gateway.yaml" 2>&1 | grep -E "(created|configured|unchanged)" || true
     
+    log_info "Deploying ingress..."
+    kubectl apply -f "${K8S_DIR}/50-ingress.yaml" 2>&1 | grep -E "(created|configured|unchanged)" || true
+    
     log_success "Applications deployed"
 }
 
@@ -143,9 +146,16 @@ show_summary() {
     echo "======================================"
     echo "Access URLs:"
     echo "======================================"
-    echo "  Gateway:     http://${NODE_IP}:30080"
-    echo "  Health:      http://${NODE_IP}:30080/health"
-    echo "  GraphQL:     http://${NODE_IP}:30080/"
+    echo ""
+    echo "Option 1 - NodePort (Direct):"
+    echo "  http://${NODE_IP}:30080"
+    echo ""
+    echo "Option 2 - Ingress (with /etc/hosts):"
+    echo "  Add to /etc/hosts: 127.0.0.1 microservices.local"
+    echo "  Then access: http://microservices.local"
+    echo ""
+    echo "Health Check:"
+    echo "  curl http://${NODE_IP}:30080/health"
     echo ""
     echo "Commands:"
     echo "  ./scripts/k3s/status.sh    # Check status"

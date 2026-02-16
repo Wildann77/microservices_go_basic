@@ -1,0 +1,55 @@
+# Traefik Ingress for Gateway
+# Exposes gateway via Ingress with automatic SSL and load balancing
+# k3s includes Traefik by default
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: gateway-ingress
+  namespace: microservices
+  labels:
+    app: gateway
+    app.kubernetes.io/name: gateway-ingress
+  annotations:
+    # Traefik annotations
+    traefik.ingress.kubernetes.io/router.entrypoints: web
+    # Enable HTTPS redirect (optional)
+    # traefik.ingress.kubernetes.io/router.middlewares: default-redirectscheme@kubernetescrd
+spec:
+  rules:
+  - host: microservices.local
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gateway
+            port:
+              number: 4000
+  # Alternative: Use without host (any host)
+  # - http:
+  #     paths:
+  #     - path: /
+  #       pathType: Prefix
+  #       backend:
+  #         service:
+  #           name: gateway
+  #           port:
+  #             number: 4000
+---
+# Alternative: LoadBalancer Service (for cloud providers)
+# Use this instead of NodePort if your k3s has cloud provider support
+# apiVersion: v1
+# kind: Service
+# metadata:
+#   name: gateway-lb
+#   namespace: microservices
+# spec:
+#   type: LoadBalancer
+#   ports:
+#     - port: 80
+#       targetPort: 4000
+#       protocol: TCP
+#       name: http
+#   selector:
+#     app: gateway

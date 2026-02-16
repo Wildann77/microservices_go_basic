@@ -23,7 +23,10 @@ help:
 	@echo "   make k3s-deploy   - Deploy to Kubernetes"
 	@echo "   make k3s-status   - Check k3s status"
 	@echo "   make k3s-logs     - View k3s logs (SERVICE=name)"
-	@echo "   make k3s-clean    - Remove k3s resources"
+	@echo "   make k3s-test     - Run comprehensive tests"
+	@echo "   make k3s-redeploy - Redeploy (soft/hard/full)"
+	@echo "   make k3s-clean    - Remove k3s resources + images"
+	@echo "   make k3s-rmi      - Remove Docker images only"
 	@echo ""
 	@echo "🐳 DOCKER COMPOSE:"
 	@echo "   make up           - Start all services"
@@ -96,6 +99,25 @@ endif
 k3s-clean:
 	@chmod +x scripts/k3s/cleanup.sh
 	@./scripts/k3s/cleanup.sh
+
+# Remove Docker images from k3s only
+k3s-rmi:
+	@echo "Removing Docker images from k3s..."
+	@sudo k3s ctr images rm localhost:5000/gateway:latest || true
+	@sudo k3s ctr images rm localhost:5000/user-service:latest || true
+	@sudo k3s ctr images rm localhost:5000/order-service:latest || true
+	@sudo k3s ctr images rm localhost:5000/payment-service:latest || true
+	@echo "Images removed!"
+
+# Run tests
+k3s-test:
+	@chmod +x scripts/k3s/test.sh
+	@./scripts/k3s/test.sh
+
+# Redeploy (3 options: soft, hard, full reset)
+k3s-redeploy:
+	@chmod +x scripts/k3s/redeploy.sh
+	@./scripts/k3s/redeploy.sh
 
 # Restart deployments
 k3s-restart:

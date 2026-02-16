@@ -20,6 +20,8 @@ Namespace: microservices
 │   ├── order-service     # 2 replicas
 │   ├── payment-service   # 2 replicas
 │   └── gateway           # 1 replica, NodePort:30080
+├── Networking
+│   └── ingress           # Traefik Ingress (load balancer)
 └── Storage
     └── emptyDir          # Non-persistent storage
 ```
@@ -65,7 +67,11 @@ make k3s-up
 
 ## Access Application
 
-The gateway is exposed via **NodePort** on port **30080**:
+The gateway can be accessed in **two ways**:
+
+### Option 1: NodePort (Simplest)
+
+Direct access via NodePort on port **30080**:
 
 ```bash
 # From the same machine
@@ -75,7 +81,33 @@ curl http://localhost:30080/health
 curl http://<NODE_IP>:30080/health
 ```
 
-View GraphQL Playground: `http://localhost:30080`
+### Option 2: Ingress with Traefik (Recommended)
+
+k3s includes **Traefik** as the default ingress controller with automatic load balancing:
+
+```bash
+# 1. Add host entry
+sudo echo "127.0.0.1 microservices.local" >> /etc/hosts
+
+# 2. Access via Ingress
+curl http://microservices.local/health
+```
+
+**Benefits of Ingress:**
+- Load balancing across multiple gateway replicas
+- SSL/TLS termination (HTTPS)
+- Path-based routing
+- Host-based routing
+- Automatic retries and failover
+
+**Verify Ingress:**
+```bash
+# Check ingress status
+kubectl get ingress -n microservices
+
+# Test via ingress (requires /etc/hosts entry)
+curl -H "Host: microservices.local" http://localhost/health
+```
 
 ## Available Commands
 
@@ -181,6 +213,7 @@ k8s/
 ├── 31-order-service.yaml      # Order service
 ├── 32-payment-service.yaml    # Payment service
 ├── 40-gateway.yaml            # API Gateway (NodePort:30080)
+├── 50-ingress.yaml            # Traefik Ingress (load balancer)
 └── README.md                  # This file
 ```
 
@@ -189,4 +222,6 @@ k8s/
 - **Storage**: Uses `emptyDir` (data lost on restart)
 - **Auto-migration**: Enabled (services run migrations on startup)
 - **Health probes**: Configured for all services
-- **NodePort**: Gateway exposed on port 30080
+- **NodePort**: Gateway exposed on port 30080 (direct access)
+- **Ingress**: Traefik ingress for load balancing and SSL
+- **Load Balancing**: Automatic across gateway replicas via Ingress
