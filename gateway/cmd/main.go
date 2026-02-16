@@ -102,6 +102,12 @@ func main() {
 	r.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	r.Handle("/query", srv)
 
+	// Health check endpoint
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"status":"healthy"}`))
+	})
+
 	log.Printf("Connect to http://localhost:%s/ for GraphQL playground", port)
 
 	fmt.Print(`

@@ -24,8 +24,8 @@ spec:
     spec:
       containers:
         - name: order-service
-          image: microservices-registry:5000/order-service:latest
-          imagePullPolicy: Always
+          image: localhost:5000/order-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8082
               name: http

@@ -1,78 +1,138 @@
 # Microservices Go - Makefile
 # ===========================
 
-.PHONY: help build up down restart logs clean test lint proto
+.PHONY: help
 
-# Load environment variables from .env file if it exists
-ifneq (,$(wildcard ./.env))
-    include .env
-    export
-endif
+# =============================================================================
+# HELP
+# =============================================================================
 
-# Go paths
-GOPATH=$(shell go env GOPATH)
-AIR=$(GOPATH)/bin/air
-
-
-# Default target
 help:
-	@echo "Microservices Go - Available Commands:"
+	@echo "╔══════════════════════════════════════════════════════════════════╗"
+	@echo "║          Microservices Go - Available Commands                   ║"
+	@echo "╚══════════════════════════════════════════════════════════════════╝"
 	@echo ""
-	@echo "  make build          - Build all Docker images"
-	@echo "  make up             - Start all services with Docker Compose"
-	@echo "  make up-d           - Start all services in detached mode"
-	@echo "  make down           - Stop all services"
-	@echo "  make restart        - Restart all services"
-	@echo "  make logs           - View logs from all services"
-	@echo "  make logs-f         - Follow logs from all services"
-	@echo "  make clean          - Remove all containers and volumes"
-	@echo "  make clean-all      - Remove everything including images"
+	@echo "🚀 QUICK START:"
+	@echo "   make setup        - Full k3s setup (build + import + deploy)"
+	@echo "   make up           - Start with Docker Compose"
 	@echo ""
-	@echo "  make run-gateway    - Run GraphQL Gateway locally"
-	@echo "  make run-user       - Run User Service locally"
-	@echo "  make run-order      - Run Order Service locally"
-	@echo "  make run-payment    - Run Payment Service locally"
+	@echo "📦 K3S DEPLOYMENT:"
+	@echo "   make k3s-setup    - Setup k3s environment"
+	@echo "   make k3s-build    - Build binaries & images"
+	@echo "   make k3s-import   - Import images to k3s (sudo)"
+	@echo "   make k3s-deploy   - Deploy to Kubernetes"
+	@echo "   make k3s-status   - Check k3s status"
+	@echo "   make k3s-logs     - View k3s logs (SERVICE=name)"
+	@echo "   make k3s-clean    - Remove k3s resources"
 	@echo ""
-	@echo "  make dev-gateway    - Run GraphQL Gateway locally with hot reload"
-	@echo "  make dev-user       - Run User Service locally with hot reload"
-	@echo "  make dev-order      - Run Order Service locally with hot reload"
-	@echo "  make dev-payment    - Run Payment Service locally with hot reload"
-	@echo "  make dev-all        - Run all services locally with hot reload"
+	@echo "🐳 DOCKER COMPOSE:"
+	@echo "   make up           - Start all services"
+	@echo "   make up-d         - Start in detached mode"
+	@echo "   make down         - Stop all services"
+	@echo "   make restart      - Restart services"
+	@echo "   make logs         - View logs"
 	@echo ""
-	@echo "  make test           - Run all tests"
-	@echo "  make test-user      - Run User Service tests"
-	@echo "  make test-order     - Run Order Service tests"
-	@echo "  make test-payment   - Run Payment Service tests"
+	@echo "💻 LOCAL DEVELOPMENT:"
+	@echo "   make run-user     - Run User Service locally"
+	@echo "   make run-order    - Run Order Service locally"
+	@echo "   make run-payment  - Run Payment Service locally"
+	@echo "   make run-gateway  - Run Gateway locally"
+	@echo "   make dev-all      - Run all with hot reload"
 	@echo ""
-	@echo "  make migrate-up     - Run all database migrations (auto on start)"
-	@echo "  make migrate-down   - Rollback one migration"
-	@echo "  make migrate-status - Check migration status"
-	@echo "  make migrate-user   - Run User Service migrations manually"
-	@echo "  make migrate-order  - Run Order Service migrations manually"
-	@echo "  make migrate-payment - Run Payment Service migrations manually"
+	@echo "🧪 TESTING & MIGRATIONS:"
+	@echo "   make test         - Run all tests"
+	@echo "   make migrate-up   - Run migrations"
+	@echo "   make health       - Check health"
 	@echo ""
-	@echo "  make deps           - Download all Go dependencies"
-	@echo "  make tidy           - Tidy all Go modules"
-	@echo "  make lint           - Run linter on all services"
-	@echo ""
-	@echo "  make health         - Check health of all services"
-	@echo "  make seed           - Seed database with test data"
-	@echo ""
-	@echo "  make install-air    - Install Air for hot reload"
+	@echo "📊 EXAMPLES:"
+	@echo "   make k3s-logs SERVICE=gateway    # View gateway logs"
+	@echo "   make k3s-scale SERVICE=user REPLICAS=3"
 
-# Build commands
+# =============================================================================
+# K3S DEPLOYMENT
+# =============================================================================
+
+# Full automated setup
+k3s-setup:
+	@chmod +x setup.sh
+	@./setup.sh
+
+# Setup environment only
+k3s-setup-env:
+	@chmod +x scripts/k3s/setup.sh
+	@./scripts/k3s/setup.sh
+
+# Build binaries and images
+k3s-build:
+	@chmod +x scripts/k3s/build.sh
+	@./scripts/k3s/build.sh
+
+# Import images to k3s (requires sudo)
+k3s-import:
+	@chmod +x scripts/k3s/import.sh
+	@sudo ./scripts/k3s/import.sh
+
+# Deploy to Kubernetes
+k3s-deploy:
+	@chmod +x scripts/k3s/deploy.sh
+	@./scripts/k3s/deploy.sh
+
+# Check status
+k3s-status:
+	@chmod +x scripts/k3s/status.sh
+	@./scripts/k3s/status.sh
+
+# View logs (usage: make k3s-logs SERVICE=gateway)
+k3s-logs:
+ifndef SERVICE
+	@echo "Usage: make k3s-logs SERVICE=<service>"
+	@echo "Services: gateway, user, order, payment, all"
+	@exit 1
+endif
+	@chmod +x scripts/k3s/logs.sh
+	@./scripts/k3s/logs.sh $(SERVICE)
+
+# Clean up all resources
+k3s-clean:
+	@chmod +x scripts/k3s/cleanup.sh
+	@./scripts/k3s/cleanup.sh
+
+# Restart deployments
+k3s-restart:
+	@export KUBECONFIG=$$HOME/.kube/config && \
+	kubectl rollout restart deployment/gateway -n microservices && \
+	kubectl rollout restart deployment/user-service -n microservices && \
+	kubectl rollout restart deployment/order-service -n microservices && \
+	kubectl rollout restart deployment/payment-service -n microservices
+
+# Scale services
+k3s-scale:
+ifndef SERVICE
+	@echo "Usage: make k3s-scale SERVICE=<name> REPLICAS=<number>"
+	@exit 1
+endif
+ifndef REPLICAS
+	@echo "Usage: make k3s-scale SERVICE=<name> REPLICAS=<number>"
+	@exit 1
+endif
+	@export KUBECONFIG=$$HOME/.kube/config && \
+	kubectl scale deployment $(SERVICE)-service --replicas=$(REPLICAS) -n microservices
+
+# =============================================================================
+# DOCKER COMPOSE
+# =============================================================================
+
 build:
 	docker compose build
 
 build-no-cache:
 	docker compose build --no-cache
 
-# Docker Compose commands
 up:
 	docker compose up
 
 up-d:
-	docker compose up -d	
+	docker compose up -d
 
 down:
 	docker compose down
@@ -98,359 +158,189 @@ logs-order:
 logs-payment:
 	docker compose logs -f payment-service
 
-# Cleanup commands
 clean:
 	docker compose down -v
 	docker system prune -f
-
 
 clean-all:
 	docker compose down -v --rmi all
 	docker system prune -af
 
-# Local development commands
+# =============================================================================
+# LOCAL DEVELOPMENT
+# =============================================================================
+
 run-gateway:
-	@echo "Starting GraphQL Gateway..."
-	cd gateway && go run cmd/main.go
+	@cd gateway && go run cmd/main.go
 
 run-user:
-	@echo "Starting User Service..."
-	cd services/user && USER_PORT=8081 go run cmd/main.go
+	@cd services/user && USER_PORT=8081 go run cmd/main.go
 
 run-order:
-	@echo "Starting Order Service..."
-	cd services/order && ORDER_PORT=8082 go run cmd/main.go
+	@cd services/order && ORDER_PORT=8082 go run cmd/main.go
 
 run-payment:
-	@echo "Starting Payment Service..."
-	cd services/payment && PAYMENT_PORT=8083 go run cmd/main.go
+	@cd services/payment && PAYMENT_PORT=8083 go run cmd/main.go
 
-# Run all services locally (requires databases)
 run-all-local:
-	@echo "Make sure databases are running: make up-d"
-	@echo "Then run each service in separate terminals:"
+	@echo "Run each in separate terminals:"
 	@echo "  make run-user"
 	@echo "  make run-order"
 	@echo "  make run-payment"
 	@echo "  make run-gateway"
 
-# Development with hot reload (Air)
 dev-gateway:
-	@echo "Starting GraphQL Gateway with hot reload..."
-	cd gateway && $(AIR)
+	@cd gateway && air
 
 dev-user:
-	@echo "Starting User Service with hot reload..."
-	cd services/user && $(AIR)
+	@cd services/user && air
 
 dev-order:
-	@echo "Starting Order Service with hot reload..."
-	cd services/order && $(AIR)
+	@cd services/order && air
 
 dev-payment:
-	@echo "Starting Payment Service with hot reload..."
-	cd services/payment && $(AIR)
+	@cd services/payment && air
 
-# Run all services with hot reload in separate background processes
 dev-all:
-	@echo "Starting all services with hot reload..."
-	(cd services/user && $(AIR)) & \
-	(cd services/order && $(AIR)) & \
-	(cd services/payment && $(AIR)) & \
-	(cd gateway && $(AIR)) & \
+	@(cd services/user && air) & \
+	(cd services/order && air) & \
+	(cd services/payment && air) & \
+	(cd gateway && air) & \
 	wait
 
 install-air:
-	@echo "Installing Air..."
-	go install github.com/air-verse/air@latest
+	@go install github.com/air-verse/air@latest
 
-# Test commands
+# =============================================================================
+# TESTING & MIGRATIONS
+# =============================================================================
+
 test:
-	@echo "Running all tests..."
-	cd shared && go test ./...
-	cd services/user && go test ./...
-	cd services/order && go test ./...
-	cd services/payment && go test ./...
+	@cd shared && go test ./...
+	@cd services/user && go test ./...
+	@cd services/order && go test ./...
+	@cd services/payment && go test ./...
 
 test-user:
-	cd services/user && go test -v ./...
+	@cd services/user && go test -v ./...
 
 test-order:
-	cd services/order && go test -v ./...
+	@cd services/order && go test -v ./...
 
 test-payment:
-	cd services/payment && go test -v ./...
+	@cd services/payment && go test -v ./...
 
 test-coverage:
-	cd services/user && go test -cover ./...
-	cd services/order && go test -cover ./...
-	cd services/payment && go test -cover ./...
-
-# Database migration commands (manual - auto-migrate runs on service start)
-# Usage: make migrate-up, make migrate-down, make migrate-status
-# Or run manually: cd services/<service> && go run cmd/migrate/main.go -action=up
+	@cd services/user && go test -cover ./...
+	@cd services/order && go test -cover ./...
+	@cd services/payment && go test -cover ./...
 
 migrate-up:
-	@echo "Running all database migrations..."
-	cd services/user && go run cmd/migrate/main.go -action=up
-	cd services/order && go run cmd/migrate/main.go -action=up
-	cd services/payment && go run cmd/migrate/main.go -action=up
+	@cd services/user && go run cmd/migrate/main.go -action=up
+	@cd services/order && go run cmd/migrate/main.go -action=up
+	@cd services/payment && go run cmd/migrate/main.go -action=up
 
 migrate-down:
-	@echo "Rolling back one migration for all services..."
-	cd services/user && go run cmd/migrate/main.go -action=down
-	cd services/order && go run cmd/migrate/main.go -action=down
-	cd services/payment && go run cmd/migrate/main.go -action=down
+	@cd services/user && go run cmd/migrate/main.go -action=down
+	@cd services/order && go run cmd/migrate/main.go -action=down
+	@cd services/payment && go run cmd/migrate/main.go -action=down
 
 migrate-status:
-	@echo "Checking migration status..."
-	@echo "User Service:"
 	@cd services/user && go run cmd/migrate/main.go -action=version
-	@echo "Order Service:"
 	@cd services/order && go run cmd/migrate/main.go -action=version
-	@echo "Payment Service:"
 	@cd services/payment && go run cmd/migrate/main.go -action=version
 
-migrate-user:
-	@echo "User Service migrations:"
-	@echo "  Up:    make migrate-user-up"
-	@echo "  Down:  make migrate-user-down"
-	@echo "  Status: make migrate-user-status"
+# =============================================================================
+# INFRASTRUCTURE & UTILITIES
+# =============================================================================
 
-migrate-user-up:
-	cd services/user && go run cmd/migrate/main.go -action=up
+infra:
+	@docker compose up -d postgres-user postgres-order postgres-payment rabbitmq redis
+	@sleep 5
+	@echo "Infrastructure ready!"
 
-migrate-user-down:
-	cd services/user && go run cmd/migrate/main.go -action=down
+infra-down:
+	@docker compose stop postgres-user postgres-order postgres-payment rabbitmq redis
 
-migrate-user-status:
-	cd services/user && go run cmd/migrate/main.go -action=status
+health:
+	@echo "User Service:"
+	@curl -s http://localhost:8081/health || echo "Not running"
+	@echo "Order Service:"
+	@curl -s http://localhost:8082/health || echo "Not running"
+	@echo "Payment Service:"
+	@curl -s http://localhost:8083/health || echo "Not running"
 
-migrate-order:
-	@echo "Order Service migrations:"
-	@echo "  Up:    make migrate-order-up"
-	@echo "  Down:  make migrate-order-down"
-	@echo "  Status: make migrate-order-status"
-
-migrate-order-up:
-	cd services/order && go run cmd/migrate/main.go -action=up
-
-migrate-order-down:
-	cd services/order && go run cmd/migrate/main.go -action=down
-
-migrate-order-status:
-	cd services/order && go run cmd/migrate/main.go -action=status
-
-migrate-payment:
-	@echo "Payment Service migrations:"
-	@echo "  Up:    make migrate-payment-up"
-	@echo "  Down:  make migrate-payment-down"
-	@echo "  Status: make migrate-payment-status"
-
-migrate-payment-up:
-	cd services/payment && go run cmd/migrate/main.go -action=up
-
-migrate-payment-down:
-	cd services/payment && go run cmd/migrate/main.go -action=down
-
-migrate-payment-status:
-	cd services/payment && go run cmd/migrate/main.go -action=status
-
-# Dependency management
 deps:
-	cd shared && go mod download
-	cd gateway && go mod download
-	cd services/user && go mod download
-	cd services/order && go mod download
-	cd services/payment && go mod download
+	@cd shared && go mod download
+	@cd gateway && go mod download
+	@cd services/user && go mod download
+	@cd services/order && go mod download
+	@cd services/payment && go mod download
 
 tidy:
-	cd shared && go mod tidy
-	cd gateway && go mod tidy
-	cd services/user && go mod tidy
-	cd services/order && go mod tidy
-	cd services/payment && go mod tidy
+	@cd shared && go mod tidy
+	@cd gateway && go mod tidy
+	@cd services/user && go mod tidy
+	@cd services/order && go mod tidy
+	@cd services/payment && go mod tidy
 
-update-deps:
-	cd shared && go get -u ./...
-	cd gateway && go get -u ./...
-	cd services/user && go get -u ./...
-	cd services/order && go get -u ./...
-	cd services/payment && go get -u ./...
-
-# Linting
-lint:
-	@echo "Running linter..."
-	which golangci-lint || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-	cd shared && golangci-lint run ./...
-	cd gateway && golangci-lint run ./...
-	cd services/user && golangci-lint run ./...
-	cd services/order && golangci-lint run ./...
-	cd services/payment && golangci-lint run ./...
-
-# Code formatting
 fmt:
-	cd shared && go fmt ./...
-	cd gateway && go fmt ./...
-	cd services/user && go fmt ./...
-	cd services/order && go fmt ./...
-	cd services/payment && go fmt ./...
+	@cd shared && go fmt ./...
+	@cd gateway && go fmt ./...
+	@cd services/user && go fmt ./...
+	@cd services/order && go fmt ./...
+	@cd services/payment && go fmt ./...
 
-# Health checks
-health:
-	@echo "Checking service health..."
-	@echo "User Service:"
-	curl -s http://localhost:8081/health | jq . || echo "Not healthy"
-	@echo "Order Service:"
-	curl -s http://localhost:8082/health | jq . || echo "Not healthy"
-	@echo "Payment Service:"
-	curl -s http://localhost:8083/health | jq . || echo "Not healthy"
+lint:
+	@which golangci-lint || go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+	@cd shared && golangci-lint run ./...
+	@cd gateway && golangci-lint run ./...
+	@cd services/user && golangci-lint run ./...
+	@cd services/order && golangci-lint run ./...
+	@cd services/payment && golangci-lint run ./...
 
-# Database seeding
-seed:
-	@echo "Seeding database with test data..."
-	@echo "Use GraphQL mutations or REST API to create test data"
-	@echo "Example:"
-	@echo '  curl -X POST http://localhost:8081/api/v1/users/register \\'
-	@echo '    -H "Content-Type: application/json" \\'
-	@echo '    -d '\''{"email":"test@example.com","password":"password123","first_name":"Test","last_name":"User"}'\'''
-
-# GraphQL playground
-playground:
-	@echo "Opening GraphQL Playground..."
-	@echo "Visit: http://localhost:4000/"
-	@echo "Query endpoint: http://localhost:4000/query"
-
-# API documentation
-api-docs:
-	@echo "API Endpoints:"
-	@echo ""
-	@echo "Nginx Reverse Proxy (Recommended):"
-	@echo "  Playground: http://localhost/"
-	@echo "  Endpoint:   http://localhost/query"
-	@echo "  Cache TTL:  5 minutes"
-	@echo ""
-	@echo "GraphQL Gateway (Direct):"
-	@echo "  Playground: http://localhost:4000/"
-	@echo "  Endpoint:   http://localhost:4000/query"
-	@echo ""
-	@echo "REST Services (Direct):"
-	@echo "  User Service:    http://localhost:8081/api/v1/users"
-	@echo "  Order Service:   http://localhost:8082/api/v1/orders"
-	@echo "  Payment Service: http://localhost:8083/api/v1/payments"
-	@echo ""
-	@echo "Health Checks:"
-	@echo "  Nginx:           http://localhost/health"
-	@echo "  User Service:    http://localhost:8081/health"
-	@echo "  Order Service:   http://localhost:8082/health"
-	@echo "  Payment Service: http://localhost:8083/health"
-	@echo ""
-	@echo "Infrastructure:"
-	@echo "  RabbitMQ Management: http://localhost:15672 (guest/guest)"
-	@echo "  Jaeger UI:          http://localhost:16686"
-	@echo "  Prometheus:         http://localhost:9090"
-
-# Generate GraphQL code (requires gqlgen)
-generate:
-	cd gateway && go run github.com/99designs/gqlgen generate
-
-# Initialize project
-init:
-	@echo "Initializing project..."
-	make deps
-	@echo "Project initialized. Run 'make up-d' to start services."
-
-# Development mode - start infrastructure only
-infra:
-	docker compose up -d postgres-user postgres-order postgres-payment rabbitmq jaeger prometheus
-	@echo "Infrastructure started. Waiting for services to be ready..."
-	@sleep 5
-	@echo "Run individual services locally with:"
-	@echo "  make run-user"
-	@echo "  make run-order"
-	@echo "  make run-payment"
-	@echo "  make run-gateway"
-
-# Stop infrastructure
-infra-down:
-	docker compose stop postgres-user postgres-order postgres-payment rabbitmq jaeger prometheus
-
-# Full reset
 reset: clean-all
-	@echo "Full reset complete. Run 'make up-d' to start fresh."
+	@echo "Full reset complete"
 
 # =============================================================================
-# Nginx Commands
+# NGINX
 # =============================================================================
 
-# Start nginx container
 nginx-up:
-	docker compose up -d nginx
-	@echo "Nginx started at http://localhost"
-	@echo "GraphQL Playground: http://localhost"
+	@docker compose up -d nginx
 
-# Stop nginx container
 nginx-down:
-	docker compose stop nginx
+	@docker compose stop nginx
 
-# Restart nginx
 nginx-restart: nginx-down nginx-up
 
-# View nginx logs
 nginx-logs:
-	docker compose logs -f nginx
+	@docker compose logs -f nginx
 
-# Test nginx configuration
-nginx-test:
-	docker compose exec nginx nginx -t
-
-# Reload nginx configuration (graceful reload)
 nginx-reload:
-	docker compose exec nginx nginx -s reload
-
-# Clear nginx cache (restart required)
-nginx-clear-cache:
-	docker compose stop nginx
-	docker compose rm -f nginx
-	docker volume rm microservices-go_nginx_cache || true
-	docker compose up -d nginx
-	@echo "Nginx cache cleared and restarted"
-
-# Nginx status
-nginx-status:
-	@echo "Nginx container status:"
-	@docker compose ps nginx
-	@echo ""
-	@echo "Cache status:"
-	@docker compose exec nginx du -sh /var/cache/nginx 2>/dev/null || echo "Cache empty or nginx not running"
+	@docker compose exec nginx nginx -s reload
 
 # =============================================================================
-# Performance Testing
+# PERFORMANCE
 # =============================================================================
 
-# Run full performance test suite
 test-performance:
-	@chmod +x test-performance.sh
 	@./test-performance.sh
 
-# Run quick performance report
 test-performance-quick:
-	@chmod +x test-performance-quick.sh
 	@./test-performance-quick.sh
 
-# View performance report
-test-performance-report:
-	@if [ -f PERFORMANCE-REPORT.md ]; then \
-		cat PERFORMANCE-REPORT.md; \
-	else \
-		echo "Performance report not found. Run 'make test-performance' first."; \
-	fi
-
-# Load test specific endpoint
-# Usage: make load-test URL=http://localhost/ CONCURRENCY=10 REQUESTS=100
 load-test:
-	@if [ -z "$(URL)" ]; then \
-		echo "Usage: make load-test URL=http://localhost/ CONCURRENCY=10 REQUESTS=100"; \
-		exit 1; \
-	fi
-	ab -n $(REQUESTS) -c $(CONCURRENCY) "$(URL)"
+ifndef URL
+	@echo "Usage: make load-test URL=http://localhost/ CONCURRENCY=10 REQUESTS=100"
+	@exit 1
+endif
+	@ab -n $(REQUESTS) -c $(CONCURRENCY) "$(URL)"
+
+# =============================================================================
+# ALIASES (for convenience)
+# =============================================================================
+
+setup: k3s-setup
+status: k3s-status
+logs: k3s-logs

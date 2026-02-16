@@ -30,6 +30,9 @@ WORKDIR /app
 # Copy binary from builder
 COPY --from=builder /build/services/order/main /app/order-service
 
+# Copy migrations
+COPY --from=builder /build/services/order/migrations /app/migrations
+
 # Expose port
 EXPOSE 8082
 

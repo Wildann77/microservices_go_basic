@@ -24,8 +24,8 @@ spec:
     spec:
       containers:
         - name: user-service
-          image: microservices-registry:5000/user-service:latest
-          imagePullPolicy: Always
+          image: localhost:5000/user-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8081
               name: http

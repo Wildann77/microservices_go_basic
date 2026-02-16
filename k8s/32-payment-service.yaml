@@ -24,8 +24,8 @@ spec:
     spec:
       containers:
         - name: payment-service
-          image: microservices-registry:5000/payment-service:latest
-          imagePullPolicy: Always
+          image: localhost:5000/payment-service:latest
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 8083
               name: http

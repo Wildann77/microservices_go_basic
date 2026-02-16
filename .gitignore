@@ -36,6 +36,11 @@ bin/
 dist/
 build/
 
+# k3s/Docker image exports
+*.tar
+*.tar.gz
+images/
+
 # Docker
 .dockerignore
 

@@ -30,6 +30,9 @@ WORKDIR /app
 # Copy binary from builder
 COPY --from=builder /build/services/payment/main /app/payment-service
 
+# Copy migrations
+COPY --from=builder /build/services/payment/migrations /app/migrations
+
 # Expose port
 EXPOSE 8083
 
