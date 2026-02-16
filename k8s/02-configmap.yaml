@@ -1,0 +1,86 @@
+# Kubernetes ConfigMap for Microservices
+# Contains non-sensitive environment variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: microservices-config
+  namespace: microservices
+  labels:
+    app.kubernetes.io/name: microservices
+    app.kubernetes.io/component: config
+data:
+  # Environment
+  ENV: "production"
+  
+  # JWT Configuration
+  JWT_EXPIRES_IN: "24"
+  JWT_ISSUER: "microservices-go"
+  
+  # Service Ports
+  USER_PORT: "8081"
+  ORDER_PORT: "8082"
+  PAYMENT_PORT: "8083"
+  GATEWAY_PORT: "4000"
+  
+  # Database Configuration - User Service
+  USER_DB_HOST: "postgres-user"
+  USER_DB_PORT: "5432"
+  USER_DB_USER: "postgres"
+  USER_DB_NAME: "user"
+  USER_DB_SSLMODE: "disable"
+  
+  # Database Configuration - Order Service
+  ORDER_DB_HOST: "postgres-order"
+  ORDER_DB_PORT: "5432"
+  ORDER_DB_USER: "postgres"
+  ORDER_DB_NAME: "order"
+  ORDER_DB_SSLMODE: "disable"
+  
+  # Database Configuration - Payment Service
+  PAYMENT_DB_HOST: "postgres-payment"
+  PAYMENT_DB_PORT: "5432"
+  PAYMENT_DB_USER: "postgres"
+  PAYMENT_DB_NAME: "payment"
+  PAYMENT_DB_SSLMODE: "disable"
+  
+  # RabbitMQ Configuration
+  RABBITMQ_HOST: "rabbitmq"
+  RABBITMQ_PORT: "5672"
+  RABBITMQ_VHOST: "/"
+  
+  # Redis Configuration
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  
+  # Service URLs (internal communication)
+  USER_SERVICE_URL: "http://user-service:8081"
+  ORDER_SERVICE_URL: "http://order-service:8082"
+  PAYMENT_SERVICE_URL: "http://payment-service:8083"
+  
+  # Auto-Migrate Configuration
+  USER_AUTO_MIGRATE: "true"
+  ORDER_AUTO_MIGRATE: "true"
+  PAYMENT_AUTO_MIGRATE: "true"
+  
+  # Rate Limiting Configuration (requests per minute)
+  GATEWAY_RATE_LIMIT_RPM: "1000"
+  GATEWAY_RATE_LIMIT_WINDOW: "60"
+  USER_RATE_LIMIT_RPM: "500"
+  USER_RATE_LIMIT_WINDOW: "60"
+  ORDER_RATE_LIMIT_RPM: "200"
+  ORDER_RATE_LIMIT_WINDOW: "60"
+  PAYMENT_RATE_LIMIT_RPM: "100"
+  PAYMENT_RATE_LIMIT_WINDOW: "60"
+  
+  # Cache Configuration (in seconds)
+  USER_CACHE_TTL: "300"
+  ORDER_CACHE_TTL: "180"
+  PAYMENT_CACHE_TTL: "180"
+  CACHE_ENABLED: "true"
+  
+  # CORS
+  CORS_ALLOWED_ORIGINS: "*"
+  
+  # Security
+  SECURE_HEADERS: "true"
