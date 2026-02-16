@@ -1,0 +1,9 @@
+# Kubernetes Namespace for Microservices
+# This namespace contains all resources for the microservices application
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: microservices
+  labels:
+    app.kubernetes.io/name: microservices
+    app.kubernetes.io/managed-by: k3d
